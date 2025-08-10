@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { Camera, MessageSquare, MapPin, Clock, Send, X } from 'lucide-react';
 
@@ -62,7 +61,7 @@ const QuickCapture: React.FC = () => {
         lat: location.coords.latitude,
         lng: location.coords.longitude
       } : undefined,
-      image,
+      image: image || undefined,
       note,
       tags: note.match(/#\w+/g) || []
     };
@@ -117,7 +116,7 @@ const QuickCapture: React.FC = () => {
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSubmit}>
                   {/* Image Capture */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -178,7 +177,7 @@ const QuickCapture: React.FC = () => {
                     className="w-full flex items-center justify-center py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-md transition-colors"
                   >
                     {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
@@ -202,7 +201,7 @@ const QuickCapture: React.FC = () => {
             </div>
           ) : (
             captures.map((capture) => (
-              <div key={capture.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" key={capture.id}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="w-4 h-4 mr-1" />
@@ -215,7 +214,7 @@ const QuickCapture: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 {capture.image && (
                   <div className="mb-3">
                     <img
@@ -225,9 +224,9 @@ const QuickCapture: React.FC = () => {
                     />
                   </div>
                 )}
-                
+
                 <div className="text-gray-900 whitespace-pre-wrap mb-2">{capture.note}</div>
-                
+
                 {capture.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {capture.tags.map((tag, index) => (
