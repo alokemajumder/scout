@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Rocket, Code2, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -23,8 +24,12 @@ export default function HomePage() {
           <Badge variant="secondary">Tailwind CSS</Badge>
           <Badge variant="secondary">shadcn/ui</Badge>
         </div>
+        <div className="mt-8">
+          <Link href="/scout">
+            <Button size="lg">Go to Scout →</Button>
+          </Link>
+        </div>
       </div>
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
         <Card>
           <CardHeader>
@@ -43,7 +48,6 @@ export default function HomePage() {
             </p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -61,128 +65,6 @@ export default function HomePage() {
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Rocket className="h-5 w-5" />
-              Ready to Deploy
-            </CardTitle>
-            <CardDescription>
-              Production-ready configuration and optimizations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Configured with ESLint, optimized builds, and deployment-ready 
-              settings for modern hosting platforms.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator className="my-8" />
-
-      <Tabs defaultValue="overview" className="max-w-4xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="features">Features</TabsTrigger>
-          <TabsTrigger value="setup">Setup</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Overview</CardTitle>
-              <CardDescription>
-                This is a starter template for building modern web applications
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>This Scout application provides a solid foundation for building scalable web applications with:</p>
-              <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Next.js 14 with App Router for modern React development</li>
-                <li>TypeScript for enhanced developer experience and type safety</li>
-                <li>Tailwind CSS for rapid UI development</li>
-                <li>shadcn/ui for beautiful, accessible component library</li>
-                <li>Lucide React for consistent iconography</li>
-                <li>Framer Motion for smooth animations (ready to use)</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="features" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Key Features</CardTitle>
-              <CardDescription>
-                What makes this template special
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">🚀 Performance First</h4>
-                  <p className="text-sm text-muted-foreground">Optimized builds, code splitting, and modern bundling</p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">🎨 Design System</h4>
-                  <p className="text-sm text-muted-foreground">Consistent theming with light/dark mode support</p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">♿ Accessibility</h4>
-                  <p className="text-sm text-muted-foreground">Built-in accessibility features and ARIA compliance</p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">📱 Responsive</h4>
-                  <p className="text-sm text-muted-foreground">Mobile-first design that works on all devices</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="setup" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Getting Started</CardTitle>
-              <CardDescription>
-                Quick setup instructions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-medium">Development Setup:</h4>
-                <div className="bg-muted p-3 rounded-md text-sm font-mono">
-                  <div>npm install</div>
-                  <div>npm run dev</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium">Environment Variables:</h4>
-                <p className="text-sm text-muted-foreground">
-                  Configure TIME_ZONE to Asia/Kolkata for proper time formatting.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium">shadcn/ui Components:</h4>
-                <p className="text-sm text-muted-foreground">
-                  Add new components with: npx shadcn@latest add [component]
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <div className="text-center mt-12">
-        <Button size="lg" className="mr-4">
-          Get Started
-        </Button>
-        <Button variant="outline" size="lg">
-          View Documentation
-        </Button>
       </div>
     </div>
   );
