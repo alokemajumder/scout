@@ -88,7 +88,7 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
     
     try {
       switch (card.type) {
-        case 'overview':
+        case 'trip-summary':
           return <OverviewCardView card={card as any} isFullscreen={isFullscreen} />;
         case 'itinerary':
           return <ItineraryCardView card={card as any} isFullscreen={isFullscreen} />;

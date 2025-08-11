@@ -66,7 +66,7 @@ export class TravelDeckGenerator {
     
     // Wait for all cards to complete
     const generatedCards = await Promise.all(cardPromises);
-    cards.push(...generatedCards.filter(card => card !== null));
+    cards.push(...generatedCards.filter((card: any) => card !== null));
     
     // Sort cards by priority
     cards.sort((a, b) => a.priority - b.priority);
