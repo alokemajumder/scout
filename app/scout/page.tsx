@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Sparkles, ArrowLeft, Calendar, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import JourneyForm from '@/components/travel/JourneyForm';
 import TravelDeckView from '@/components/travel-deck/TravelDeckView';
+import AuthModal from '@/components/auth/AuthModal';
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { TravelDeck } from '@/lib/types/travel-deck';
+import { useAuth } from '@/hooks/useAuth';
 import { getGuestTravelCards, storeGuestTravelCard, getGuestSessionInfo } from '@/lib/utils/session';
 
 interface TravelCard {
@@ -26,7 +28,10 @@ const Scout: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [travelCards, setTravelCards] = useState<TravelCard[]>(() => getGuestTravelCards());
   const [currentCard, setCurrentCard] = useState<TravelCard | null>(null);
-
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  
+  const { user, isAuthenticated, isLoading, logout, refreshAuth } = useAuth();
   const sessionInfo = getGuestSessionInfo();
 
   const handleCreateCard = async (travelInput: TravelCaptureInput) => {
@@ -35,13 +40,20 @@ const Scout: React.FC = () => {
     try {
       console.log('Creating travel deck with:', travelInput);
       
+      // Include authentication status in travel input
+      const enhancedTravelInput = {
+        ...travelInput,
+        isGuest: !isAuthenticated,
+        userId: isAuthenticated ? user?.id : undefined
+      };
+      
       // Call the deck generation API instead of the basic travel API
       const response = await fetch('/api/scout/deck', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(travelInput),
+        body: JSON.stringify(enhancedTravelInput),
       });
 
       if (!response.ok) {
@@ -60,15 +72,15 @@ const Scout: React.FC = () => {
           origin: travelInput.origin,
           travelType: travelInput.travelType,
           createdAt: new Date().toISOString(),
-          expiresAt: travelInput.isGuest 
+          expiresAt: !isAuthenticated
             ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() 
             : undefined,
-          isGuestCard: travelInput.isGuest,
+          isGuestCard: !isAuthenticated,
           deck: result.deck, // Include the full travel deck
         };
 
-        if (travelInput.isGuest) {
-          // Store with deck data
+        if (!isAuthenticated) {
+          // Store with deck data for guest users
           storeGuestTravelCard(newCard);
         }
 
@@ -103,7 +115,7 @@ const Scout: React.FC = () => {
     return (
       <JourneyForm
         onComplete={handleCreateCard}
-        isGuest={true}
+        isGuest={!isAuthenticated}
       />
     );
   }
@@ -170,12 +182,18 @@ const Scout: React.FC = () => {
                 </p>
               </div>
 
-              {currentCard.isGuestCard && (
+              {!isAuthenticated && currentCard.isGuestCard && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-amber-800 text-sm">
-                    💡 <strong>Guest Mode:</strong> This card will expire in {currentCard.expiresAt ? getDaysRemaining(currentCard.expiresAt) : 7} days. 
-                    Create an account to save it permanently!
+                    💡 <strong>Guest Mode:</strong> This card will expire in {currentCard.expiresAt ? getDaysRemaining(currentCard.expiresAt) : 7} days.
                   </p>
+                  <Button 
+                    size="sm" 
+                    className="mt-2 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => { setAuthMode('signup'); setShowAuthModal(true); }}
+                  >
+                    Create Account to Save
+                  </Button>
                 </div>
               )}
             </div>
@@ -205,22 +223,63 @@ const Scout: React.FC = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Guest Session Info */}
+        {/* User Info Card */}
         <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Guest Session</h2>
-              <p className="text-gray-600">
-                You've created {sessionInfo.cardsCreated} travel cards • 
-                {sessionInfo.daysRemaining} days remaining
-              </p>
-            </div>
-            <div className="text-right">
-              <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                Create Account
-              </Button>
-              <p className="text-xs text-gray-500 mt-1">Save cards permanently</p>
-            </div>
+            {isAuthenticated && user ? (
+              <>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
+                    ) : (
+                      <User className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Welcome back, {user.name}!</h2>
+                    <p className="text-gray-600">Your travel cards are saved permanently</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Button 
+                    variant="outline" 
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={logout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Guest Session</h2>
+                  <p className="text-gray-600">
+                    You've created {sessionInfo.cardsCreated} travel cards • 
+                    {sessionInfo.daysRemaining} days remaining
+                  </p>
+                </div>
+                <div className="text-right space-x-2">
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    onClick={() => { setAuthMode('signup'); setShowAuthModal(true); }}
+                  >
+                    Create Account
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="text-blue-700 hover:bg-blue-100"
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                  >
+                    Sign In
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">Save cards permanently</p>
+                </div>
+              </>
+            )}
           </div>
         </Card>
 
@@ -288,9 +347,14 @@ const Scout: React.FC = () => {
                     
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Created {formatDate(card.createdAt)}</span>
-                      {card.isGuestCard && card.expiresAt && (
+                      {!isAuthenticated && card.isGuestCard && card.expiresAt && (
                         <span className="text-amber-600">
                           {getDaysRemaining(card.expiresAt)}d left
+                        </span>
+                      )}
+                      {isAuthenticated && (
+                        <span className="text-green-600 text-xs">
+                          Saved
                         </span>
                       )}
                     </div>
@@ -328,6 +392,18 @@ const Scout: React.FC = () => {
           </div>
         </Card>
       </div>
+      
+      {/* Authentication Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          refreshAuth();
+          // Refresh travel cards after login
+          setTravelCards(getGuestTravelCards());
+        }}
+        defaultMode={authMode}
+      />
     </div>
   );
 };
