@@ -18,12 +18,12 @@ export class RapidAPIClient {
   private retries: number;
 
   constructor() {
-    this.apiKey = process.env.RAPIDAPI_KEY || '';
+    this.apiKey = process.env.X_RapidAPI_Key || process.env.RAPIDAPI_KEY || '';
     this.timeout = RAPIDAPI_TIMEOUT;
     this.retries = MAX_RETRIES;
 
     if (!this.apiKey) {
-      console.warn('RAPIDAPI_KEY not found in environment variables');
+      console.warn('X_RapidAPI_Key not found in environment variables');
     }
   }
 
