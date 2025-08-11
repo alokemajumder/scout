@@ -4,6 +4,7 @@ import { validateCompleteTravelInput } from '@/lib/validations/travel';
 import { rapidAPIClient } from '@/lib/api/rapidapi';
 import { openRouterClient } from '@/lib/api/openrouter';
 import { TravelCaptureInput } from '@/lib/types/travel';
+import { travelDeckGenerator } from '@/lib/api/travel-deck-generator';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,5 +1,6 @@
 // Vision API service for location identification from images
 import { openRouterClient, LLMMessage } from './openrouter';
+import { MODEL_CONFIGS } from './openrouter-config';
 
 export interface LocationIdentification {
   location: string;
@@ -100,9 +101,9 @@ Important guidelines:
           ]
         }
       ], {
-        model: 'anthropic/claude-3.5-sonnet',
-        temperature: 0.3,
-        maxTokens: 1000
+        model: MODEL_CONFIGS.VISION_ANALYSIS.model,
+        temperature: MODEL_CONFIGS.VISION_ANALYSIS.temperature,
+        maxTokens: MODEL_CONFIGS.VISION_ANALYSIS.maxTokens
       });
 
       console.log('Vision API response received');

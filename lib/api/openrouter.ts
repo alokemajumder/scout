@@ -1,6 +1,8 @@
 // OpenRouter API client for LLM integration
 // This will be used for generating comprehensive travel card content
 
+import { MODEL_CONFIGS, getModelForTask } from './openrouter-config';
+
 export interface OpenRouterConfig {
   apiKey: string;
   model: string;
