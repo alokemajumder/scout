@@ -82,7 +82,7 @@ export interface TravelCaptureInput {
 
 // Form State Management
 export interface JourneyFormState {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2 | 3 | 4 | 5;
   completedSteps: number[];
   data: {
     step1?: TravelTypeStep;

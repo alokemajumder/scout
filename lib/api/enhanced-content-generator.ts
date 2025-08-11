@@ -306,9 +306,9 @@ OUTPUT FORMAT: Return only JSON content with human-readable text suitable for di
     if (cardType === 'transport' && apiData?.flights) {
       const flights = Array.isArray(apiData.flights) ? apiData.flights : [];
       if (flights.length > 0) {
-        const prices = flights.map(f => f.price || 0).filter(p => p > 0);
+        const prices = flights.map((f: any) => f.price || 0).filter((p: number) => p > 0);
         if (prices.length > 0) {
-          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const avg = Math.round(prices.reduce((sum: number, p: number) => sum + p, 0) / prices.length);
           const min = Math.min(...prices);
           const max = Math.max(...prices);
           pricingAnalysis = `\nFLIGHT PRICING ANALYSIS: Average flight cost is ₹${avg.toLocaleString()}, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for budget recommendations.`;
@@ -317,9 +317,9 @@ OUTPUT FORMAT: Return only JSON content with human-readable text suitable for di
     } else if (cardType === 'accommodation' && apiData?.hotels) {
       const hotels = Array.isArray(apiData.hotels) ? apiData.hotels : [];
       if (hotels.length > 0) {
-        const prices = hotels.map(h => h.pricePerNight || h.price_per_night || 0).filter(p => p > 0);
+        const prices = hotels.map((h: any) => h.pricePerNight || h.price_per_night || 0).filter((p: number) => p > 0);
         if (prices.length > 0) {
-          const avg = Math.round(prices.reduce((sum, p) => sum + p, 0) / prices.length);
+          const avg = Math.round(prices.reduce((sum: number, p: number) => sum + p, 0) / prices.length);
           const min = Math.min(...prices);
           const max = Math.max(...prices);
           pricingAnalysis = `\nHOTEL PRICING ANALYSIS: Average hotel cost is ₹${avg.toLocaleString()} per night, ranging from ₹${min.toLocaleString()} to ₹${max.toLocaleString()}. Use this for accommodation recommendations.`;
@@ -563,7 +563,7 @@ Generate the JSON content:`;
    */
   private getExpectedFieldCount(cardType: TravelDeckType): number {
     const counts: Record<TravelDeckType, number> = {
-      overview: 6,
+      'trip-summary': 8,
       itinerary: 4,
       transport: 5,
       accommodation: 4,

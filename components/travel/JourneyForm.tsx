@@ -139,16 +139,16 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
   };
 
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= 4) {
-      setFormState(prev => ({ ...prev, currentStep: step as 1 | 2 | 3 | 4 }));
+    if (step >= 1 && step <= 5) {
+      setFormState(prev => ({ ...prev, currentStep: step as 1 | 2 | 3 | 4 | 5 }));
     }
   };
 
   const goNext = () => {
-    if (formState.currentStep < 4 && isCurrentStepValid()) {
+    if (formState.currentStep < 5 && isCurrentStepValid()) {
       setFormState(prev => ({ 
         ...prev, 
-        currentStep: (prev.currentStep + 1) as 1 | 2 | 3 | 4 
+        currentStep: (prev.currentStep + 1) as 1 | 2 | 3 | 4 | 5
       }));
     }
   };
@@ -157,7 +157,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
     if (formState.currentStep > 1) {
       setFormState(prev => ({ 
         ...prev, 
-        currentStep: (prev.currentStep - 1) as 1 | 2 | 3 | 4 
+        currentStep: (prev.currentStep - 1) as 1 | 2 | 3 | 4 | 5
       }));
     }
   };
@@ -278,7 +278,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
     // Mark step 5 as completed
     setFormState(prev => ({
       ...prev,
-      completedSteps: [...new Set([...prev.completedSteps, 5])],
+      completedSteps: Array.from(new Set([...prev.completedSteps, 5])),
       isValid: true // Final validation
     }));
   };
