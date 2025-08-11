@@ -278,7 +278,7 @@ const Scout: React.FC = () => {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Guest Session</h2>
                   <p className="text-gray-600">
-                    You've created {sessionInfo.cardsCreated} travel cards • 
+                    You&apos;ve created {sessionInfo.cardsCreated} travel cards • 
                     {sessionInfo.daysRemaining} days remaining
                   </p>
                 </div>

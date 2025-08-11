@@ -3,8 +3,15 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User, LocalUser, SocialUser, SignupCredentials } from '@/lib/types/user';
 
-// AxioDB instance - single instance architecture
-const db = new AxioDB();
+// AxioDB instance - single instance architecture (lazy-loaded)
+let db: AxioDB | null = null;
+
+const getDB = () => {
+  if (!db) {
+    db = new AxioDB();
+  }
+  return db;
+};
 
 // Database and collection names
 const DB_NAME = 'scout_auth';
@@ -30,10 +37,16 @@ class AxioDBUserRepository {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
+    
+    // Skip initialization during build process
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+      console.log('Skipping AxioDB initialization during build phase');
+      return;
+    }
 
     try {
       // Create or get the database
-      this.database = await db.createDB(DB_NAME);
+      this.database = await getDB().createDB(DB_NAME);
 
       // Create users collection with encryption (schema disabled for now)
       this.usersCollection = await this.database.createCollection(
@@ -58,6 +71,11 @@ class AxioDBUserRepository {
   private async ensureInitialized(): Promise<void> {
     if (!this.initialized) {
       await this.initialize();
+    }
+    
+    // If still not initialized (e.g., during build), throw a warning
+    if (!this.initialized) {
+      throw new Error('AxioDB is not available during build phase');
     }
   }
 
@@ -349,11 +367,17 @@ class AxioDBUserRepository {
 // Create and export the repository instance
 export const userRepository = new AxioDBUserRepository();
 
-// Initialize the repository
-if (typeof window === 'undefined') {
-  userRepository.initialize().catch(console.error);
+// Initialize the repository only in runtime, not during build
+if (typeof window === 'undefined' && 
+    process.env.NEXT_PHASE !== 'phase-production-build' &&
+    process.env.NEXT_PHASE !== 'phase-development' &&
+    !process.argv.includes('build')) {
+  
+  userRepository.initialize().catch((error) => {
+    console.warn('AxioDB initialization failed (non-critical during build):', error.message);
+  });
 
-  // Clean up expired sessions every hour
+  // Clean up expired sessions every hour (only in production runtime)
   setInterval(() => {
     userRepository.cleanExpiredSessions().catch(console.error);
   }, 60 * 60 * 1000);

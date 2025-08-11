@@ -6,10 +6,10 @@ The Scout travel application now uses **real RapidAPI services** instead of mock
 
 ## 🔧 **APIs Integrated**
 
-### **1. Travel Guide API**
-- **Service**: `travel-guide-api-city-guide-top-places.p.rapidapi.com`
-- **Purpose**: Destination highlights, attractions, local information
-- **Usage**: Overview cards, attractions, cultural information
+### **1. TripAdvisor API**
+- **Service**: `tripadvisor-com1.p.rapidapi.com`
+- **Purpose**: Hotel search, location data, accommodation information
+- **Usage**: Hotel recommendations, accommodation cards, pricing data
 
 ### **2. Flight Data28 API**
 - **Service**: `flight-data28.p.rapidapi.com`

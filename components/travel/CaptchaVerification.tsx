@@ -48,7 +48,7 @@ export default function CaptchaVerification({
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Shield className="w-5 h-5 text-blue-600" />
-            <h3 className="font-medium text-gray-900">Verify you're human</h3>
+            <h3 className="font-medium text-gray-900">Verify you&apos;re human</h3>
           </div>
           
           {/* Development Notice */}

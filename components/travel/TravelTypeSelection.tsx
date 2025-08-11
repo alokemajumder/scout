@@ -62,7 +62,7 @@ export default function TravelTypeSelection({
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">Who's traveling?</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Who&apos;s traveling?</h2>
         <p className="text-gray-600">
           Choose your travel type to get personalized recommendations
         </p>
