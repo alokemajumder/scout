@@ -80,11 +80,14 @@ async function fetchTravelDataAsync(travelInput: TravelCaptureInput, cardId: str
     const travelData = await rapidAPIClient.getTravelData(travelInput);
     
     console.log(`[${cardId}] RapidAPI data fetched:`, {
-      hasWeather: !!travelData.weather,
+      hasTravelGuide: !!travelData.travelGuide,
       hasFlights: !!travelData.flights,
       hasHotels: !!travelData.hotels,
-      hasAttractions: !!travelData.attractions,
+      hasTrains: !!travelData.trains,
       hasVisa: !!travelData.visa,
+      hasInterests: !!travelData.interests,
+      isDomestic: travelData.isDomestic,
+      travelerCount: travelData.travelerCount,
       errors: travelData.errors?.length || 0
     });
 
@@ -94,11 +97,12 @@ async function fetchTravelDataAsync(travelInput: TravelCaptureInput, cardId: str
     const llmInput = {
       ...travelInput,
       rawApiData: {
-        weather: travelData.weather,
+        travelGuide: travelData.travelGuide,
         flights: travelData.flights,
         hotels: travelData.hotels,
-        attractions: travelData.attractions,
+        trains: travelData.trains,
         visa: travelData.visa,
+        interests: travelData.interests
       }
     };
 
@@ -161,11 +165,12 @@ TRAVEL CONTEXT:
 - Domestic Travel: ${isDomestic ? 'Yes (within India)' : 'No (international)'}
 
 ${input.rawApiData ? `RAW API DATA FOR REFERENCE:
-Weather: ${JSON.stringify(input.rawApiData.weather)}
+Travel Guide: ${JSON.stringify(input.rawApiData.travelGuide)}
 Flights: ${JSON.stringify(input.rawApiData.flights)}
 Hotels: ${JSON.stringify(input.rawApiData.hotels)}
-Attractions: ${JSON.stringify(input.rawApiData.attractions)}
-Visa: ${JSON.stringify(input.rawApiData.visa)}` : ''}`;
+Trains: ${JSON.stringify(input.rawApiData.trains)}
+Visa: ${JSON.stringify(input.rawApiData.visa)}
+Interests: ${JSON.stringify(input.rawApiData.interests)}` : ''}`;
 
   const userPrompt = `Create a comprehensive travel card with the following JSON structure:
 
