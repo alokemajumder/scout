@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { userRepository } from '@/lib/db/simple-user-repository';
+import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { User } from '@/lib/types/user';
 
 export async function getAuthenticatedUser(request: NextRequest): Promise<User | null> {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userRepository } from '@/lib/db/simple-user-repository';
+import { userRepository } from '@/lib/db/axiodb-user-repository';
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Create session
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    // Create session with 24-hour expiry for security
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const sessionId = await userRepository.createSession(user.id, expiresAt);
 
     const response = NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/scout?login=success`);

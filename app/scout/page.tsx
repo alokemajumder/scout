@@ -5,7 +5,7 @@ import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut, Camera } from 'luc
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import JourneyForm from '@/components/travel/JourneyForm';
-import TravelDeckView from '@/components/travel-deck/TravelDeckView';
+import ComprehensiveTravelGuide from '@/components/travel-deck/ComprehensiveTravelGuide';
 import AuthModal from '@/components/auth/AuthModal';
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { TravelDeck } from '@/lib/types/travel-deck';
@@ -145,7 +145,7 @@ const Scout: React.FC = () => {
     // Show travel deck if available, otherwise show creation success message
     if (currentCard.deck) {
       return (
-        <TravelDeckView 
+        <ComprehensiveTravelGuide 
           deck={currentCard.deck} 
           onClose={() => setView('home')}
         />

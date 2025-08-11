@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userRepository } from '@/lib/db/simple-user-repository';
+import { userRepository } from '@/lib/db/axiodb-user-repository';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userRepository } from '@/lib/db/simple-user-repository';
+import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { SignupCredentials } from '@/lib/types/user';
 
 export async function POST(request: NextRequest) {

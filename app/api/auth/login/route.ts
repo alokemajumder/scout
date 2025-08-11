@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { userRepository } from '@/lib/db/simple-user-repository';
+import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { LoginCredentials, LocalUser } from '@/lib/types/user';
 import { authRateLimiter, createRateLimitResponse } from '@/lib/auth/rate-limiter';
 
