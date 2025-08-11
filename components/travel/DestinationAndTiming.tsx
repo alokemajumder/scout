@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MapPin, Calendar, Clock, Lightbulb } from 'lucide-react';
+import { MapPin, Calendar, Clock, Lightbulb, Camera } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DestinationStep, Season, Duration } from '@/lib/types/travel';
+import { ImageLocationCapture } from '@/components/location/ImageLocationCapture';
 
 interface DestinationAndTimingProps {
   data: DestinationStep;
@@ -19,6 +20,7 @@ export default function DestinationAndTiming({
   onChange,
 }: DestinationAndTimingProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showImageCapture, setShowImageCapture] = useState(false);
 
   const popularDestinations = {
     domestic: [
@@ -107,6 +109,21 @@ export default function DestinationAndTiming({
     setShowSuggestions(false);
   };
 
+  const handleImageLocationSelected = (location: string) => {
+    onChange({ ...data, destination: location });
+    setShowImageCapture(false);
+    setShowSuggestions(false);
+  };
+
+  const handleShowImageCapture = () => {
+    setShowImageCapture(true);
+    setShowSuggestions(false);
+  };
+
+  const handleSkipImageCapture = () => {
+    setShowImageCapture(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
@@ -125,14 +142,40 @@ export default function DestinationAndTiming({
           </div>
           
           <div className="space-y-3">
-            <Input
-              value={data.destination}
-              onChange={(e) => onChange({ ...data, destination: e.target.value })}
-              placeholder="e.g., Goa, Dubai, Thailand..."
-              className="text-base"
-              onFocus={() => setShowSuggestions(true)}
-              required
-            />
+            {showImageCapture ? (
+              <ImageLocationCapture
+                onLocationSelected={handleImageLocationSelected}
+                onSkip={handleSkipImageCapture}
+                title="Identify Your Location"
+                description="Take a photo of a landmark or location to automatically detect where you are"
+                className="w-full"
+              />
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Input
+                    value={data.destination}
+                    onChange={(e) => onChange({ ...data, destination: e.target.value })}
+                    placeholder="e.g., Goa, Dubai, Thailand..."
+                    className="text-base flex-1"
+                    onFocus={() => setShowSuggestions(true)}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleShowImageCapture}
+                    className="flex-shrink-0 px-3"
+                    title="Take photo to identify location"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  💡 Tap the camera icon to identify location from a photo
+                </p>
+              </>
+            )}
 
             {showSuggestions && (
               <div className="space-y-3 p-3 bg-gray-50 rounded-lg">

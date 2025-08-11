@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { MobileContainer, TouchButton } from '@/components/ui/mobile-container';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   JourneyFormState, 
@@ -243,7 +244,7 @@ export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormP
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <MobileContainer fullHeight className="bg-gradient-to-br from-blue-50 via-white to-purple-50" padding="none">
       {/* Progress Header */}
       <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -328,31 +329,33 @@ export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormP
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-            <Button
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 gap-4">
+            <TouchButton
               variant="outline"
               onClick={goBack}
               disabled={formState.currentStep === 1 || isSubmitting}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 min-w-[100px]"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
-            </Button>
+            </TouchButton>
 
             {formState.currentStep < 4 ? (
-              <Button
+              <TouchButton
+                variant="primary"
                 onClick={goNext}
                 disabled={!isCurrentStepValid() || isSubmitting}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 min-w-[100px]"
               >
                 <span>Next</span>
                 <ArrowRight className="w-4 h-4" />
-              </Button>
+              </TouchButton>
             ) : (
-              <Button
+              <TouchButton
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={!formState.isValid || isSubmitting}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 min-w-[140px]"
               >
                 {isSubmitting ? (
                   <>
@@ -365,7 +368,7 @@ export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormP
                     <span>Create Travel Card</span>
                   </>
                 )}
-              </Button>
+              </TouchButton>
             )}
           </div>
 
@@ -380,6 +383,6 @@ export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormP
           )}
         </Card>
       </div>
-    </div>
+    </MobileContainer>
   );
 }

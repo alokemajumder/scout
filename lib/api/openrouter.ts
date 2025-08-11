@@ -10,7 +10,13 @@ export interface OpenRouterConfig {
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | Array<{
+    type: 'text' | 'image_url';
+    text?: string;
+    image_url?: {
+      url: string;
+    };
+  }>;
 }
 
 export interface LLMResponse {
