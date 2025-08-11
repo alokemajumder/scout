@@ -39,6 +39,9 @@ export interface DestinationStep {
   motivation: string;
   season: Season;
   duration: Duration;
+  detectedFromImage?: boolean;
+  capturedImage?: string;
+  imageConfidence?: number;
 }
 
 // Step 4: Preferences & Budget

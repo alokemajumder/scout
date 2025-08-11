@@ -31,13 +31,27 @@ import PreferencesAndBudget from './PreferencesAndBudget';
 interface JourneyFormProps {
   onComplete: (data: TravelCaptureInput) => void;
   isGuest?: boolean;
+  initialData?: {
+    destination?: string;
+    capturedImage?: string;
+  };
 }
 
-export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormProps) {
+export default function JourneyForm({ onComplete, isGuest = true, initialData }: JourneyFormProps) {
   const [formState, setFormState] = useState<JourneyFormState>({
-    currentStep: 1,
-    completedSteps: [],
-    data: {},
+    currentStep: initialData?.destination ? 2 : 1, // Skip to step 2 if destination detected
+    completedSteps: initialData?.destination ? [1] : [],
+    data: initialData?.destination ? {
+      step3: {
+        destination: initialData.destination,
+        origin: '',
+        season: 'Winter',
+        duration: '5-7',
+        motivation: '',
+        detectedFromImage: true,
+        capturedImage: initialData.capturedImage
+      }
+    } : {},
     isValid: false
   });
   

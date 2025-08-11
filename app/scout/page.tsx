@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut } from 'lucide-react';
+import { Sparkles, ArrowLeft, Calendar, MapPin, User, LogOut, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import JourneyForm from '@/components/travel/JourneyForm';
@@ -10,6 +10,8 @@ import AuthModal from '@/components/auth/AuthModal';
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { TravelDeck } from '@/lib/types/travel-deck';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import MobileImageCapture from '@/components/travel/MobileImageCapture';
 import { getGuestTravelCards, storeGuestTravelCard, getGuestSessionInfo } from '@/lib/utils/session';
 
 interface TravelCard {
@@ -24,14 +26,16 @@ interface TravelCard {
 }
 
 const Scout: React.FC = () => {
-  const [view, setView] = useState<'home' | 'create' | 'card'>('home');
+  const [view, setView] = useState<'home' | 'create' | 'card' | 'mobile-image'>('home');
   const [isCreating, setIsCreating] = useState(false);
   const [travelCards, setTravelCards] = useState<TravelCard[]>(() => getGuestTravelCards());
   const [currentCard, setCurrentCard] = useState<TravelCard | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [imageData, setImageData] = useState<{image: string, location?: string} | null>(null);
   
   const { user, isAuthenticated, isLoading, logout, refreshAuth } = useAuth();
+  const { isMobile } = useDeviceDetection();
   const sessionInfo = getGuestSessionInfo();
 
   const handleCreateCard = async (travelInput: TravelCaptureInput) => {
@@ -111,11 +115,28 @@ const Scout: React.FC = () => {
     return Math.max(0, days);
   };
 
+  // Mobile image capture flow
+  if (view === 'mobile-image') {
+    return (
+      <MobileImageCapture
+        onImageCapture={(image, detectedLocation) => {
+          setImageData({ image, location: detectedLocation });
+          setView('create');
+        }}
+        onSkip={() => setView('create')}
+      />
+    );
+  }
+
   if (view === 'create') {
     return (
       <JourneyForm
         onComplete={handleCreateCard}
         isGuest={!isAuthenticated}
+        initialData={imageData ? {
+          destination: imageData.location || '',
+          capturedImage: imageData.image
+        } : undefined}
       />
     );
   }
@@ -213,11 +234,11 @@ const Scout: React.FC = () => {
             <p className="text-sm text-gray-600">Plan your perfect trip in 30 seconds</p>
           </div>
           <Button
-            onClick={() => setView('create')}
+            onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
           >
-            <Sparkles className="w-5 h-5" />
-            <span>Create Travel Card</span>
+            {isMobile ? <Camera className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+            <span>{isMobile ? 'Snap Destination' : 'Create Travel Card'}</span>
           </Button>
         </div>
       </div>
@@ -305,11 +326,11 @@ const Scout: React.FC = () => {
                   </p>
                 </div>
                 <Button
-                  onClick={() => setView('create')}
+                  onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
                   className="mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Create Your First Card
+                  {isMobile ? <Camera className="w-4 h-4 mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                  {isMobile ? 'Snap Your Destination' : 'Create Your First Card'}
                 </Button>
               </div>
             </Card>
