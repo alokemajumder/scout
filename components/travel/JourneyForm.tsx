@@ -27,6 +27,7 @@ import TravelTypeSelection from './TravelTypeSelection';
 import TravelerDetails from './TravelerDetails';
 import DestinationAndTiming from './DestinationAndTiming';
 import PreferencesAndBudget from './PreferencesAndBudget';
+import CaptchaVerification from './CaptchaVerification';
 
 interface JourneyFormProps {
   onComplete: (data: TravelCaptureInput) => void;
@@ -57,6 +58,8 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [captchaPayload, setCaptchaPayload] = useState<string>('');
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
 
   // Generate session ID for guest users
   const [sessionId] = useState(() => isGuest ? uuidv4() : undefined);
@@ -65,7 +68,8 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
     { number: 1, title: 'Travel Type', description: 'Who\'s traveling?' },
     { number: 2, title: 'Travelers', description: 'Tell us about your group' },
     { number: 3, title: 'Destination', description: 'Where & when?' },
-    { number: 4, title: 'Preferences', description: 'Budget & style' }
+    { number: 4, title: 'Preferences', description: 'Budget & style' },
+    { number: 5, title: 'Security', description: 'Verify you\'re human' }
   ];
 
   // Update completed steps when data changes
@@ -202,8 +206,11 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
         return;
       }
 
-      // Submit to parent component
-      await onComplete(travelInput);
+      // Submit to parent component with captcha payload
+      await onComplete({
+        ...travelInput,
+        altcha: captchaPayload // Include captcha payload for verification
+      } as any);
       
     } catch (error) {
       console.error('Form submission error:', error);
@@ -248,13 +255,32 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
             isGroupTravel={formState.data.step1?.travelType === 'group' || formState.data.step1?.travelType === 'family'}
           />
         );
+      case 5:
+        return (
+          <CaptchaVerification
+            onVerified={handleCaptchaVerified}
+            isVerified={isCaptchaVerified}
+          />
+        );
       default:
         return null;
     }
   };
 
   const getProgressPercentage = () => {
-    return (formState.completedSteps.length / 4) * 100;
+    return (formState.completedSteps.length / 5) * 100;
+  };
+
+  const handleCaptchaVerified = (payload: string) => {
+    setCaptchaPayload(payload);
+    setIsCaptchaVerified(true);
+    
+    // Mark step 5 as completed
+    setFormState(prev => ({
+      ...prev,
+      completedSteps: [...new Set([...prev.completedSteps, 5])],
+      isValid: true // Final validation
+    }));
   };
 
   return (
@@ -267,7 +293,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
             <div className="flex justify-between items-center mb-2">
               <h1 className="text-lg font-semibold text-gray-900">Create Travel Card</h1>
               <span className="text-sm text-gray-500">
-                Step {formState.currentStep} of 4
+                Step {formState.currentStep} of 5
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -354,7 +380,7 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
               <span>Back</span>
             </TouchButton>
 
-            {formState.currentStep < 4 ? (
+            {formState.currentStep < 5 ? (
               <TouchButton
                 variant="primary"
                 onClick={goNext}

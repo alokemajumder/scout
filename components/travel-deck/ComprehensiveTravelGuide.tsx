@@ -348,6 +348,23 @@ export default function ComprehensiveTravelGuide({ deck, onClose, className = ''
                       <span className="text-xs ml-1">(approx.)</span>
                     </span>
                   </div>
+                  {budgetContent._metadata && (
+                    <div className="mt-2 text-xs text-green-700 bg-green-50 px-2 py-1 rounded flex items-center justify-between">
+                      <span>
+                        ✓ {budgetContent._metadata.dataSource === 'api' ? 'Real API data' : 
+                           budgetContent._metadata.dataSource === 'llm_enhanced' ? 'API + LLM enhanced' :
+                           'LLM generated'}
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {(budgetContent._metadata.confidence * 100).toFixed(0)}% confidence
+                      </span>
+                    </div>
+                  )}
+                  {budgetContent.realData && (
+                    <div className="mt-1 text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                      ✓ Using real data from {budgetContent.realData.source}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

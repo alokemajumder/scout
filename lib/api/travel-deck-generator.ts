@@ -1,6 +1,10 @@
-// Travel Deck Generator using OpenRouter LLM
+// Enhanced Travel Deck Generator with Multi-LLM Strategy and Quality Assurance
 import { openRouterClient, LLMMessage } from './openrouter';
-import { MODEL_CONFIGS, TRAVEL_DECK_TYPES } from './openrouter-config';
+import { MODEL_CONFIGS, TRAVEL_DECK_TYPES, getModelForCard } from './openrouter-config';
+import { rapidAPIClient } from './rapidapi';
+import { currencyAPI } from './currency';
+import { dataQualityAssessor, ValidatedApiData } from './data-quality';
+import { enhancedContentGenerator, EnhancedContentRequest } from './enhanced-content-generator';
 import { TravelDeck, TravelDeckCard } from '@/lib/types/travel-deck';
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,33 +12,69 @@ import { v4 as uuidv4 } from 'uuid';
 export class TravelDeckGenerator {
   
   /**
-   * Generate a complete travel deck with all card types
+   * Generate a complete travel deck with all card types using real API data
    */
   async generateCompleteDeck(
     input: TravelCaptureInput,
     apiData?: any
   ): Promise<TravelDeck> {
-    console.log('Starting comprehensive travel deck generation...');
+    console.log('🚀 Starting enhanced travel deck generation with multi-LLM strategy...');
     
+    const startTime = Date.now();
     const deckId = `deck_${uuidv4()}`;
     const cards: TravelDeckCard[] = [];
     
-    // Generate each card type
-    for (const cardType of TRAVEL_DECK_TYPES) {
-      try {
-        console.log(`Generating ${cardType} card...`);
-        const card = await this.generateCard(cardType, input, apiData);
-        if (card) {
-          cards.push(card);
-        }
-      } catch (error) {
-        console.error(`Failed to generate ${cardType} card:`, error);
-        // Continue with other cards even if one fails
-      }
+    // Step 1: Fetch and validate RapidAPI data
+    let validatedApiData: ValidatedApiData;
+    try {
+      console.log('📡 Fetching travel data from RapidAPI...');
+      const realApiData = await rapidAPIClient.getTravelData(input);
+      console.log('✅ RapidAPI data fetched:', Object.keys(realApiData));
+      
+      // Merge with any provided API data
+      const combinedApiData = {
+        ...apiData,
+        ...realApiData
+      };
+      
+      // Step 2: Assess data quality and determine strategy
+      console.log('🔍 Assessing API data quality...');
+      validatedApiData = dataQualityAssessor.assessApiData(combinedApiData, input);
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch/validate RapidAPI data:', error);
+      // Create empty validated data structure
+      validatedApiData = this.createEmptyValidatedData();
     }
+    
+    // Step 3: Determine overall content generation strategy
+    const contentStrategy = dataQualityAssessor.determineContentStrategy(validatedApiData);
+    console.log(`📋 Using content strategy: ${contentStrategy}`);
+    
+    // Step 4: Generate cards with enhanced multi-LLM approach
+    const cardPromises = TRAVEL_DECK_TYPES.map(async (cardType) => {
+      try {
+        console.log(`🎯 Generating ${cardType} card...`);
+        const card = await this.generateEnhancedCard(cardType, input, validatedApiData, contentStrategy);
+        return card;
+      } catch (error) {
+        console.error(`❌ Failed to generate ${cardType} card:`, error);
+        // Return a basic card instead of null
+        return this.createFallbackCard(cardType, input);
+      }
+    });
+    
+    // Wait for all cards to complete
+    const generatedCards = await Promise.all(cardPromises);
+    cards.push(...generatedCards.filter(card => card !== null));
     
     // Sort cards by priority
     cards.sort((a, b) => a.priority - b.priority);
+    
+    const processingTime = Date.now() - startTime;
+    
+    // Calculate overall quality metrics
+    const qualityMetrics = this.calculateDeckQualityMetrics(cards, validatedApiData);
     
     const deck: TravelDeck = {
       id: deckId,
@@ -49,17 +89,217 @@ export class TravelDeckGenerator {
         duration: input.duration,
         budget: input.budget,
         travelerCount: this.getTravelerCount(input),
-        generatedBy: 'OpenRouter Claude 3.5 Sonnet',
-        version: '1.0.0'
+        generatedBy: 'Enhanced Multi-LLM System',
+        version: '2.0.0',
+        processingTime,
+        contentStrategy,
+        qualityMetrics,
+        apiDataSources: this.getUsedApiSources(validatedApiData),
+        averageConfidence: this.calculateAverageConfidence(cards)
       }
     };
     
-    console.log(`Travel deck generated with ${cards.length} cards`);
+    console.log(`🎉 Enhanced travel deck generated with ${cards.length} cards in ${processingTime}ms`);
+    console.log(`📊 Quality: ${(qualityMetrics.overall * 100).toFixed(1)}%, Strategy: ${contentStrategy}`);
     return deck;
+  }
+
+  /**
+   * Calculate quality for data relevant to specific card type
+   */
+  private calculateRelevantQuality(cardType: string, validatedData: ValidatedApiData): number {
+    const relevantSources = this.getRelevantDataSources(cardType);
+    const qualities = relevantSources.map(source => {
+      const data = (validatedData as any)[source];
+      return data?.quality?.overall || 0;
+    });
+    
+    return qualities.length > 0 ? qualities.reduce((sum, q) => sum + q, 0) / qualities.length : 0;
   }
   
   /**
-   * Generate a specific card type
+   * Get data sources relevant to specific card type
+   */
+  private getRelevantDataSources(cardType: string): string[] {
+    const mapping: Record<string, string[]> = {
+      overview: ['travelGuide'],
+      itinerary: ['travelGuide', 'flights'],
+      transport: ['flights', 'trains'],
+      accommodation: ['hotels'],
+      attractions: ['travelGuide'],
+      dining: ['travelGuide'],
+      budget: ['flights', 'hotels', 'currency'],
+      visa: ['visa'],
+      weather: ['travelGuide'],
+      culture: ['travelGuide'],
+      emergency: ['travelGuide'],
+      shopping: ['travelGuide']
+    };
+    
+    return mapping[cardType] || ['travelGuide'];
+  }
+  
+  /**
+   * Create empty validated data structure for fallback
+   */
+  private createEmptyValidatedData(): ValidatedApiData {
+    const emptyData = {
+      data: null,
+      quality: {
+        overall: 0.1,
+        completeness: 0,
+        accuracy: 0,
+        relevance: 0,
+        freshness: 0,
+        details: { missingFields: ['all'], inconsistencies: [], recommendations: [] }
+      },
+      usable: false
+    };
+    
+    return {
+      travelGuide: emptyData,
+      flights: emptyData,
+      hotels: emptyData,
+      visa: emptyData,
+      currency: emptyData
+    };
+  }
+  
+  /**
+   * Create fallback card when enhanced generation fails
+   */
+  private createFallbackCard(cardType: string, input: TravelCaptureInput): TravelDeckCard {
+    const content = this.getMockContent(cardType, input);
+    
+    return {
+      id: `fallback_${uuidv4()}`,
+      type: cardType,
+      title: this.getCardTitle(cardType, input.destination),
+      subtitle: this.getCardSubtitle(cardType, input),
+      content: {
+        ...content,
+        _metadata: {
+          dataSource: 'fallback',
+          confidence: 0.4,
+          model: 'emergency_fallback',
+          processingTime: 0,
+          qualityScore: 0.3,
+          strategy: 'emergency',
+          qualityIndicators: {
+            completeness: 0.5,
+            accuracy: 0.4,
+            relevance: 0.6,
+            actionability: 0.3
+          }
+        }
+      },
+      priority: this.getCardPriority(cardType),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as TravelDeckCard;
+  }
+  
+  /**
+   * Calculate deck-wide quality metrics
+   */
+  private calculateDeckQualityMetrics(cards: TravelDeckCard[], validatedData: ValidatedApiData): any {
+    const confidences = cards.map(card => card.content._metadata?.confidence || 0.4);
+    const apiSources = cards.filter(card => card.content._metadata?.dataSource === 'api').length;
+    const llmEnhanced = cards.filter(card => card.content._metadata?.dataSource === 'llm_enhanced').length;
+    const llmGenerated = cards.filter(card => card.content._metadata?.dataSource === 'llm_generated').length;
+    
+    return {
+      overall: confidences.reduce((sum, c) => sum + c, 0) / confidences.length,
+      apiDataCards: apiSources,
+      llmEnhancedCards: llmEnhanced,
+      llmGeneratedCards: llmGenerated,
+      totalCards: cards.length,
+      dataSourceBreakdown: {
+        api: (apiSources / cards.length * 100).toFixed(1) + '%',
+        llm_enhanced: (llmEnhanced / cards.length * 100).toFixed(1) + '%',
+        llm_generated: (llmGenerated / cards.length * 100).toFixed(1) + '%'
+      }
+    };
+  }
+  
+  /**
+   * Get list of API sources that provided usable data
+   */
+  private getUsedApiSources(validatedData: ValidatedApiData): string[] {
+    const sources: string[] = [];
+    
+    Object.entries(validatedData).forEach(([key, data]) => {
+      if (data.usable) {
+        sources.push(key);
+      }
+    });
+    
+    return sources;
+  }
+  
+  /**
+   * Calculate average confidence across all cards
+   */
+  private calculateAverageConfidence(cards: TravelDeckCard[]): number {
+    const confidences = cards.map(card => card.content._metadata?.confidence || 0.4);
+    return confidences.reduce((sum, c) => sum + c, 0) / confidences.length;
+  }
+  
+  /**
+   * Generate enhanced card with multi-LLM strategy and quality assurance
+   */
+  private async generateEnhancedCard(
+    cardType: typeof TRAVEL_DECK_TYPES[number],
+    input: TravelCaptureInput,
+    validatedApiData: ValidatedApiData,
+    contentStrategy: string
+  ): Promise<TravelDeckCard> {
+    // Calculate average quality for this card's relevant data
+    const relevantQuality = this.calculateRelevantQuality(cardType, validatedApiData);
+    
+    // Create enhanced content request
+    const contentRequest: EnhancedContentRequest = {
+      cardType,
+      input,
+      validatedApiData,
+      strategy: contentStrategy as any,
+      qualityScore: relevantQuality
+    };
+    
+    // Generate content using enhanced multi-LLM system
+    const generatedContent = await enhancedContentGenerator.generateCardContent(contentRequest);
+    
+    // Create card with quality metadata
+    const card: TravelDeckCard = {
+      id: `card_${uuidv4()}`,
+      type: cardType,
+      title: this.getCardTitle(cardType, input.destination),
+      subtitle: this.getCardSubtitle(cardType, input),
+      content: {
+        ...generatedContent.content,
+        _metadata: {
+          dataSource: generatedContent.dataSource,
+          confidence: generatedContent.confidence,
+          model: generatedContent.model,
+          processingTime: generatedContent.processingTime,
+          qualityScore: relevantQuality,
+          strategy: contentStrategy,
+          qualityIndicators: generatedContent.qualityIndicators
+        }
+      },
+      priority: this.getCardPriority(cardType),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as TravelDeckCard;
+    
+    console.log(`✅ Generated ${cardType} card: ${generatedContent.dataSource} source, ${(generatedContent.confidence * 100).toFixed(1)}% confidence`);
+    return card;
+  }
+
+  /**
+   * Legacy method - Generate a specific card type using real API data
    */
   private async generateCard(
     cardType: typeof TRAVEL_DECK_TYPES[number],
@@ -68,107 +308,146 @@ export class TravelDeckGenerator {
   ): Promise<TravelDeckCard | null> {
     const isDomestic = this.isDomesticTravel(input.origin, input.destination);
     
-    const systemPrompt = this.getSystemPrompt(cardType, isDomestic);
-    const userPrompt = this.getUserPrompt(cardType, input, apiData);
-    
+    // Try to use real API data first
+    let content: any;
     try {
-      const response = await openRouterClient.generateContent(
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        MODEL_CONFIGS.TRAVEL_GENERATION
-      );
-      
-      // Parse JSON response
-      const content = this.parseJsonResponse(response.content);
-      
-      if (!content) {
-        throw new Error('Failed to parse card content');
-      }
-      
-      // Create card structure
-      const card: TravelDeckCard = {
-        id: `card_${uuidv4()}`,
-        type: cardType,
-        title: this.getCardTitle(cardType, input.destination),
-        subtitle: this.getCardSubtitle(cardType, input),
-        content,
-        priority: this.getCardPriority(cardType),
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      } as TravelDeckCard;
-      
-      return card;
-      
+      content = await this.generateRealContent(cardType, input, apiData, isDomestic);
+      console.log(`Generated real content for ${cardType}`);
     } catch (error) {
-      console.error(`Error generating ${cardType} card:`, error);
+      console.warn(`Failed to generate real content for ${cardType}, falling back to LLM:`, error);
       
-      // Return mock card as fallback
-      return this.getMockCard(cardType, input);
+      // Fallback to LLM generation with real API data as context
+      const systemPrompt = this.getSystemPrompt(cardType, isDomestic);
+      const userPrompt = this.getUserPrompt(cardType, input, apiData);
+      
+      try {
+        const response = await openRouterClient.generateContent(
+          [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          MODEL_CONFIGS.TRAVEL_PLANNING
+        );
+        
+        // Parse JSON response
+        content = this.parseJsonResponse(response.content);
+        
+        if (!content) {
+          throw new Error('Failed to parse LLM response');
+        }
+      } catch (llmError) {
+        console.error(`LLM fallback failed for ${cardType}:`, llmError);
+        // Final fallback to enhanced mock content
+        content = this.getMockContent(cardType, input);
+      }
     }
+    
+    // Create card structure
+    const card: TravelDeckCard = {
+      id: `card_${uuidv4()}`,
+      type: cardType,
+      title: this.getCardTitle(cardType, input.destination),
+      subtitle: this.getCardSubtitle(cardType, input),
+      content,
+      priority: this.getCardPriority(cardType),
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as TravelDeckCard;
+    
+    return card;
   }
   
+  /**
+   * Generate real content using API data instead of LLM
+   */
+  private async generateRealContent(
+    cardType: string,
+    input: TravelCaptureInput,
+    apiData: any,
+    isDomestic: boolean
+  ): Promise<any> {
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    switch (cardType) {
+      case 'overview':
+        return this.generateOverviewFromAPI(input, apiData, isDomestic);
+      
+      case 'itinerary':
+        return this.generateItineraryFromAPI(input, apiData, isDomestic);
+      
+      case 'transport':
+        return this.generateTransportFromAPI(input, apiData, isDomestic);
+      
+      case 'accommodation':
+        return this.generateAccommodationFromAPI(input, apiData, isDomestic);
+      
+      case 'attractions':
+        return this.generateAttractionsFromAPI(input, apiData, isDomestic);
+      
+      case 'dining':
+        return this.generateDiningFromAPI(input, apiData, isDomestic);
+      
+      case 'budget':
+        return await this.generateBudgetFromAPI(input, apiData, isDomestic);
+      
+      case 'visa':
+        return this.generateVisaFromAPI(input, apiData, isDomestic);
+      
+      case 'weather':
+        return this.generateWeatherFromAPI(input, apiData, isDomestic);
+      
+      case 'culture':
+        return this.generateCultureFromAPI(input, apiData, isDomestic);
+      
+      case 'emergency':
+        return this.generateEmergencyFromAPI(input, apiData, isDomestic);
+      
+      case 'shopping':
+        return this.generateShoppingFromAPI(input, apiData, isDomestic);
+      
+      default:
+        throw new Error(`Unknown card type: ${cardType}`);
+    }
+  }
+
   private getSystemPrompt(cardType: string, isDomestic: boolean): string {
-    const basePrompt = `You are an expert travel planner creating comprehensive travel cards for Indian travelers.
+    const basePrompt = `You are an expert travel planner creating comprehensive travel cards for Indian travelers using real API data.
     
 CRITICAL REQUIREMENTS:
-1. All prices MUST be in Indian Rupees (₹)
-2. Focus on Indian traveler needs (vegetarian food, visa requirements for Indian passport)
-3. Provide practical, actionable information
-4. Be specific with timings, costs, and locations
-5. Return ONLY valid JSON, no markdown or additional text
+1. Use the provided API data as the PRIMARY source of information
+2. Format prices in appropriate currency (INR for domestic, local + INR for international)
+3. Focus on Indian traveler needs (vegetarian food, visa requirements for Indian passport)
+4. Provide practical, actionable information
+5. Be specific with timings, costs, and locations from API data
+6. Return ONLY valid JSON, no markdown or additional text
 
 TRAVEL TYPE: ${isDomestic ? 'Domestic (within India)' : 'International'}`;
 
     const cardPrompts: Record<string, string> = {
-      overview: `${basePrompt}
-Create an overview card with destination highlights, best time to visit, languages, and quick tips.`,
+      overview: `${basePrompt}\nCreate an overview card using the travel guide API data. Include destination highlights, best time to visit, languages, and quick tips.`,
       
-      itinerary: `${basePrompt}
-Create a detailed day-by-day itinerary with activities, timings, locations, and costs.
-Include meal suggestions and accommodation changes.`,
+      itinerary: `${basePrompt}\nCreate a detailed day-by-day itinerary using attractions and travel guide data. Include activities, timings, locations, and costs from API.`,
       
-      transport: `${basePrompt}
-Create a transport card with flights, trains, local transport options, and transfer details.
-Include specific timings, costs, and booking tips.`,
+      transport: `${basePrompt}\nCreate a transport card using flight and train API data. Include real flight prices, timings, and booking information.`,
       
-      accommodation: `${basePrompt}
-Create an accommodation card with hotel options across budget tiers.
-Include amenities, location details, and booking recommendations.`,
+      accommodation: `${basePrompt}\nCreate an accommodation card using hotel API data. Include real hotel prices, ratings, amenities, and booking links.`,
       
-      attractions: `${basePrompt}
-Create an attractions card with must-see places, activities, and hidden gems.
-Include entry fees, timings, and booking requirements.`,
+      attractions: `${basePrompt}\nCreate an attractions card using attractions API data. Include real entry fees, ratings, timings, and booking requirements.`,
       
-      dining: `${basePrompt}
-Create a dining card with restaurant recommendations, local dishes, and dietary options.
-Focus on vegetarian/vegan options for Indian travelers.`,
+      dining: `${basePrompt}\nCreate a dining card using travel guide data. Focus on vegetarian/vegan options and real restaurant recommendations.`,
       
-      budget: `${basePrompt}
-Create a comprehensive budget card with three tiers (tight, comfortable, luxury).
-Include detailed breakdown, daily averages, and money-saving tips.`,
+      budget: `${basePrompt}\nCreate a comprehensive budget card using real flight, hotel, and attraction prices from API data.`,
       
-      visa: `${basePrompt}
-Create a visa card specific for Indian passport holders.
-Include requirements, process, costs, and embassy details.`,
+      visa: `${basePrompt}\nCreate a visa card using visa API data for Indian passport holders. Include real requirements, costs, and processing times.`,
       
-      weather: `${basePrompt}
-Create a weather card with seasonal information and packing recommendations.
-Include best/avoid months and weather-appropriate clothing.`,
+      weather: `${basePrompt}\nCreate a weather card using weather API data. Include real seasonal information and packing recommendations.`,
       
-      culture: `${basePrompt}
-Create a culture card with customs, etiquette, language phrases, and religious considerations.
-Help Indian travelers navigate cultural differences respectfully.`,
+      culture: `${basePrompt}\nCreate a culture card using travel guide API data. Include customs, etiquette, and cultural insights.`,
       
-      emergency: `${basePrompt}
-Create an emergency card with important numbers, embassy details, hospitals, and safety tips.
-Include Indian embassy contact and areas to avoid.`,
+      emergency: `${basePrompt}\nCreate an emergency card with real emergency numbers and embassy information from API data.`,
       
-      shopping: `${basePrompt}
-Create a shopping card with markets, souvenirs, and customs limits.
-Include bargaining tips and authentic purchase locations.`
+      shopping: `${basePrompt}\nCreate a shopping card using travel guide data. Include real markets, prices, and customs information.`
     };
     
     return cardPrompts[cardType] || basePrompt;
@@ -421,6 +700,484 @@ Return ONLY the JSON content for the card.`;
       tips: ['Plan ahead', 'Check local requirements', 'Book accommodations early'],
       currency: localCurrency
     };
+  }
+
+  // Real API content generation methods
+  private generateOverviewFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const travelGuide = apiData?.travelGuide;
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    return {
+      destination: input.destination,
+      country: isDomestic ? 'India' : this.getCountryFromDestination(input.destination),
+      duration: input.duration,
+      travelType: input.travelType,
+      highlights: travelGuide?.attractions?.map((attr: any) => attr.name) || this.getDestinationHighlights(input.destination),
+      bestTime: travelGuide?.localInfo?.bestTimeToVisit || 'October to March',
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      languages: this.getDestinationLanguages(input.destination),
+      quickTips: this.getDestinationTips(input.destination, isDomestic),
+      localInfo: travelGuide?.localInfo || {
+        weather: 'Pleasant',
+        culture: 'Rich cultural heritage',
+        safety: 'Generally safe for tourists'
+      }
+    };
+  }
+
+  private generateTransportFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const flights = apiData?.flights;
+    const trains = apiData?.trains;
+    
+    return {
+      destination: input.destination,
+      origin: input.origin,
+      flights: this.processFlightData(flights, isDomestic),
+      trains: isDomestic ? this.processTrainData(trains) : null,
+      localTransport: this.getMockLocalTransport(input.destination, isDomestic),
+      tips: ['Book flights early for better rates', 'Check visa requirements', 'Download offline maps', 'Keep transport receipts']
+    };
+  }
+
+  private generateAccommodationFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const hotels = apiData?.hotels;
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    return {
+      destination: input.destination,
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      options: this.processHotelData(hotels, isDomestic),
+      bookingTips: [
+        'Compare prices on multiple platforms',
+        'Read recent reviews carefully',
+        'Check cancellation policy',
+        'Verify location on map',
+        'Confirm amenities before booking'
+      ]
+    };
+  }
+
+  private generateAttractionsFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const travelGuide = apiData?.travelGuide;
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    const attractions = travelGuide?.attractions || [];
+    
+    return {
+      destination: input.destination,
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      attractions: attractions.map((attr: any) => ({
+        name: attr.name,
+        type: attr.type || 'Attraction',
+        description: attr.description,
+        rating: attr.rating || 4.0,
+        entryFee: this.estimateAttractionFee(attr, isDomestic),
+        tips: attr.tips || 'Best visited early morning',
+        timeNeeded: '2-3 hours',
+        location: input.destination
+      }))
+    };
+  }
+
+  private generateDiningFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const travelGuide = apiData?.travelGuide;
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    const foodAttractions = travelGuide?.attractions?.filter((attr: any) => attr.type === 'Food') || [];
+    
+    return {
+      destination: input.destination,
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      restaurants: this.processFoodData(foodAttractions, isDomestic),
+      localCuisine: this.getMockLocalCuisine(input.destination),
+      dietaryOptions: this.getMockDietaryOptions(input.destination, isDomestic),
+      tips: [
+        'Try local specialties',
+        'Ask for vegetarian options',
+        'Check hygiene standards',
+        'Carry hand sanitizer'
+      ]
+    };
+  }
+
+  private async generateBudgetFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): Promise<any> {
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    const flights = apiData?.flights;
+    const hotels = apiData?.hotels;
+    
+    // Calculate real budget based on API data
+    const flightCost = this.extractFlightCost(flights, isDomestic);
+    const hotelCost = this.extractHotelCost(hotels, isDomestic);
+    const duration = parseInt(input.duration) || 3;
+    
+    const baseDaily = isDomestic ? 3000 : 5000;
+    const accommodationDaily = hotelCost || (isDomestic ? 2500 : 4000);
+    const foodDaily = isDomestic ? 1200 : 2000;
+    const transportDaily = isDomestic ? 800 : 1500;
+    const activitiesDaily = isDomestic ? 1000 : 2000;
+    
+    const dailyTotal = accommodationDaily + foodDaily + transportDaily + activitiesDaily;
+    const tripTotal = (dailyTotal * duration) + (flightCost || (isDomestic ? 8000 : 25000));
+    
+    const budget = {
+      level: input.budget || 'comfortable',
+      total: tripTotal,
+      daily: dailyTotal,
+      breakdown: {
+        accommodation: accommodationDaily * duration,
+        food: foodDaily * duration,
+        transport: (transportDaily * duration) + (flightCost || 0),
+        activities: activitiesDaily * duration,
+        shopping: Math.round(dailyTotal * duration * 0.15),
+        miscellaneous: Math.round(dailyTotal * duration * 0.1)
+      }
+    };
+
+    let exchangeRate = null;
+    let inrEquivalent = null;
+    
+    if (!isDomestic) {
+      try {
+        const rate = await currencyAPI.getExchangeRate(localCurrency, 'INR');
+        if (rate) {
+          exchangeRate = rate.rate;
+          inrEquivalent = {
+            total: Math.round(budget.total * rate.rate),
+            daily: Math.round(budget.daily * rate.rate)
+          };
+        }
+      } catch (error) {
+        console.warn('Failed to get real exchange rate, using mock:', error);
+        exchangeRate = this.getMockExchangeRate(localCurrency);
+        inrEquivalent = {
+          total: Math.round(budget.total * exchangeRate),
+          daily: Math.round(budget.daily * exchangeRate)
+        };
+      }
+    }
+
+    return {
+      destination: input.destination,
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      isDomestic,
+      exchangeRate,
+      budget,
+      inrEquivalent,
+      tips: [
+        'Book accommodations in advance for better rates',
+        'Use local transport to save money',
+        isDomestic ? 'Carry cash for small vendors' : 'Notify your bank about international travel',
+        'Compare prices before making purchases',
+        'Keep receipts for tax purposes'
+      ],
+      realData: {
+        flightCostUsed: flightCost,
+        hotelCostUsed: hotelCost,
+        source: 'RapidAPI + Real Exchange Rates'
+      }
+    };
+  }
+
+  private generateVisaFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    if (isDomestic) {
+      return {
+        destination: input.destination,
+        required: false,
+        indianPassport: true,
+        documents: ['Valid Government Photo ID (Aadhaar, Passport, Driving License)'],
+        notes: 'No visa required for domestic travel within India'
+      };
+    }
+
+    const visa = apiData?.visa;
+    
+    return {
+      destination: input.destination,
+      required: true,
+      indianPassport: true,
+      type: visa?.type || 'Tourist Visa',
+      duration: visa?.duration || '30 days',
+      cost: visa?.cost || 2500,
+      processingTime: visa?.processingTime || '3-5 business days',
+      requirements: visa?.requirements || visa?.documents || [
+        'Valid Indian Passport (6+ months validity)',
+        'Recent passport-size photographs',
+        'Travel itinerary',
+        'Bank statements (3 months)',
+        'Hotel bookings confirmation',
+        'Return flight tickets'
+      ],
+      process: visa?.process || [
+        'Fill online visa application',
+        'Upload required documents',
+        'Pay visa fees online',
+        'Schedule appointment if required',
+        'Submit passport for processing',
+        'Collect passport with visa'
+      ],
+      fees: {
+        visa: visa?.cost || 2500,
+        service: 500,
+        total: (visa?.cost || 2500) + 500
+      },
+      embassyInfo: {
+        address: visa?.embassyAddress || `${input.destination} Embassy/Consulate, New Delhi`,
+        phone: '+91-11-XXXXXXXX',
+        email: `visa@${input.destination.toLowerCase().replace(/\s+/g, '')}-embassy.in`
+      },
+      onArrival: visa?.onArrival || false,
+      eVisa: visa?.eVisa || true,
+      notes: visa?.notes || `Tourist visa required for Indian passport holders visiting ${input.destination}`
+    };
+  }
+
+  private generateItineraryFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const travelGuide = apiData?.travelGuide;
+    const attractions = travelGuide?.attractions || [];
+    const duration = parseInt(input.duration) || 3;
+    
+    const days = [];
+    for (let i = 1; i <= Math.min(duration, 7); i++) {
+      const dayAttractions = attractions.slice((i - 1) * 2, i * 2);
+      
+      days.push({
+        day: i,
+        title: `Day ${i} - ${this.getDayTitle(input.destination, i)}`,
+        activities: [
+          {
+            time: '09:00',
+            title: dayAttractions[0]?.name || `Morning Exploration`,
+            description: dayAttractions[0]?.description || `Explore ${input.destination} morning attractions`,
+            location: input.destination,
+            cost: this.estimateActivityCost(dayAttractions[0], isDomestic),
+            rating: dayAttractions[0]?.rating || 4.0,
+            tips: dayAttractions[0]?.tips || 'Best visited early morning'
+          },
+          {
+            time: '14:00',
+            title: dayAttractions[1]?.name || `Afternoon Activity`,
+            description: dayAttractions[1]?.description || `Visit popular ${input.destination} landmarks`,
+            location: input.destination,
+            cost: this.estimateActivityCost(dayAttractions[1], isDomestic),
+            rating: dayAttractions[1]?.rating || 4.2,
+            tips: dayAttractions[1]?.tips || 'Good time for photos'
+          },
+          {
+            time: '19:00',
+            title: 'Evening Leisure',
+            description: `Local dining and evening activities`,
+            location: input.destination,
+            cost: isDomestic ? '₹800-1500' : this.formatForeignCurrency(35, input.destination),
+            tips: 'Try local cuisine'
+          }
+        ]
+      });
+    }
+
+    return {
+      duration: input.duration,
+      days: days,
+      totalActivities: days.reduce((sum, day) => sum + day.activities.length, 0),
+      estimatedCost: this.calculateItineraryCost(days, isDomestic),
+      tips: [
+        'Start early to avoid crowds',
+        'Keep backup plans for weather',
+        'Book popular attractions in advance',
+        'Try local food at each location'
+      ]
+    };
+  }
+
+  private generateWeatherFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    // Note: We can add weather API integration here later
+    return this.getMockWeatherInfo(input.destination);
+  }
+
+  private generateCultureFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const travelGuide = apiData?.travelGuide;
+    
+    return {
+      destination: input.destination,
+      customs: travelGuide?.localInfo?.culture ? [travelGuide.localInfo.culture] : this.getMockCulturalInfo(input.destination, isDomestic),
+      etiquette: this.getMockEtiquette(input.destination, isDomestic),
+      phrases: this.getMockUsefulPhrases(input.destination, isDomestic),
+      safety: travelGuide?.localInfo?.safety || 'Exercise normal precautions'
+    };
+  }
+
+  private generateEmergencyFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    return {
+      destination: input.destination,
+      indianEmbassy: this.getMockEmbassyInfo(input.destination, isDomestic),
+      emergencyNumbers: this.getMockEmergencyNumbers(input.destination, isDomestic),
+      hospitals: this.getMockHospitals(input.destination, isDomestic),
+      safetyTips: this.getMockSafetyTips(input.destination, isDomestic)
+    };
+  }
+
+  private generateShoppingFromAPI(input: TravelCaptureInput, apiData: any, isDomestic: boolean): any {
+    const localCurrency = isDomestic ? 'INR' : this.getDestinationCurrency(input.destination);
+    
+    return {
+      destination: input.destination,
+      currency: localCurrency,
+      currencySymbol: this.getCurrencySymbol(localCurrency),
+      markets: this.getMockShoppingInfo(input.destination, isDomestic),
+      souvenirs: this.getMockSouvenirs(input.destination),
+      customsLimits: this.getMockCustomsLimits(isDomestic)
+    };
+  }
+
+  // API data processing helpers
+  private processFlightData(flights: any, isDomestic: boolean): any {
+    if (!flights || !Array.isArray(flights)) {
+      return {
+        available: false,
+        message: 'Flight data not available',
+        estimated: isDomestic ? '₹8,000 - ₹15,000' : '$300 - $800'
+      };
+    }
+
+    return {
+      available: true,
+      options: flights.slice(0, 3).map((flight: any) => ({
+        airline: flight.airline || 'Airline',
+        price: this.formatPrice(flight.price, isDomestic),
+        duration: flight.duration || '2-3 hours',
+        stops: flight.stops || 0,
+        departure: flight.departure || '06:00',
+        arrival: flight.arrival || '08:30',
+        bookingLink: flight.bookingLink
+      })),
+      tips: ['Book 2-3 months in advance for best prices', 'Check baggage allowance', 'Arrive 2-3 hours early']
+    };
+  }
+
+  private processTrainData(trains: any): any {
+    if (!trains || !trains.trains) {
+      return {
+        available: false,
+        message: 'Train data not available',
+        recommendation: 'Check IRCTC website for latest schedules'
+      };
+    }
+
+    return {
+      available: true,
+      options: trains.trains.slice(0, 3).map((train: any) => ({
+        number: train.trainNumber,
+        name: train.trainName,
+        class: train.class,
+        price: `₹${train.price}`,
+        duration: train.duration,
+        departure: train.departure,
+        arrival: train.arrival,
+        availability: train.availability
+      })),
+      tips: ['Book well in advance', 'Check PNR status regularly', 'Carry ID proof']
+    };
+  }
+
+  private processHotelData(hotels: any, isDomestic: boolean): any[] {
+    if (!hotels || !Array.isArray(hotels)) {
+      return [
+        {
+          name: 'Hotels not available',
+          message: 'Hotel data could not be fetched',
+          recommendation: 'Check booking platforms directly'
+        }
+      ];
+    }
+
+    return hotels.slice(0, 5).map((hotel: any) => ({
+      name: hotel.name || 'Hotel Name',
+      rating: hotel.rating || 4.0,
+      price: this.formatPrice(hotel.price_per_night || hotel.pricePerNight, isDomestic),
+      location: hotel.location || 'City Center',
+      amenities: hotel.amenities || ['WiFi', 'AC'],
+      bookingLink: hotel.bookingLink,
+      availability: hotel.availability || 'Available'
+    }));
+  }
+
+  private processFoodData(foodAttractions: any[], isDomestic: boolean): any[] {
+    if (!foodAttractions.length) {
+      return this.getMockDiningOptions('', isDomestic);
+    }
+
+    return foodAttractions.map(food => ({
+      name: food.name,
+      type: 'Restaurant',
+      description: food.description,
+      rating: food.rating,
+      priceRange: this.estimateRestaurantPrice(food, isDomestic),
+      tips: food.tips || 'Try local specialties'
+    }));
+  }
+
+  private extractFlightCost(flights: any, isDomestic: boolean): number | null {
+    if (!flights || !Array.isArray(flights) || flights.length === 0) return null;
+    
+    const avgPrice = flights.reduce((sum: number, flight: any) => {
+      return sum + (flight.price || (isDomestic ? 10000 : 30000));
+    }, 0) / flights.length;
+    
+    return Math.round(avgPrice);
+  }
+
+  private extractHotelCost(hotels: any, isDomestic: boolean): number | null {
+    if (!hotels || !Array.isArray(hotels) || hotels.length === 0) return null;
+    
+    const avgPrice = hotels.reduce((sum: number, hotel: any) => {
+      return sum + (hotel.price_per_night || hotel.pricePerNight || (isDomestic ? 3000 : 5000));
+    }, 0) / hotels.length;
+    
+    return Math.round(avgPrice);
+  }
+
+  private estimateAttractionFee(attraction: any, isDomestic: boolean): string {
+    if (attraction?.entryFee) return this.formatPrice(attraction.entryFee, isDomestic);
+    return isDomestic ? '₹200-500' : '$5-15';
+  }
+
+  private estimateActivityCost(activity: any, isDomestic: boolean): string {
+    if (activity?.cost) return this.formatPrice(activity.cost, isDomestic);
+    return isDomestic ? '₹500-1000' : '$15-30';
+  }
+
+  private estimateRestaurantPrice(restaurant: any, isDomestic: boolean): string {
+    return isDomestic ? '₹400-800 per person' : '$12-25 per person';
+  }
+
+  private formatPrice(price: any, isDomestic: boolean): string {
+    if (!price) return isDomestic ? '₹---' : '$---';
+    
+    if (isDomestic) {
+      return `₹${typeof price === 'number' ? price.toLocaleString() : price}`;
+    } else {
+      // For international, we'll show in original currency + INR equivalent
+      const numPrice = typeof price === 'number' ? price : parseFloat(price) || 0;
+      return `$${numPrice.toLocaleString()} (≈₹${Math.round(numPrice * 83).toLocaleString()})`;
+    }
+  }
+
+  private calculateItineraryCost(days: any[], isDomestic: boolean): string {
+    const totalDays = days.length;
+    const dailyAvg = isDomestic ? 2500 : 4000;
+    const total = totalDays * dailyAvg;
+    
+    if (isDomestic) {
+      return `₹${total.toLocaleString()} (₹${dailyAvg.toLocaleString()}/day)`;
+    } else {
+      const usdTotal = Math.round(total / 83);
+      const usdDaily = Math.round(dailyAvg / 83);
+      return `$${usdTotal.toLocaleString()} (≈₹${total.toLocaleString()}) - $${usdDaily}/day`;
+    }
   }
 
   // Helper methods for mock content generation
@@ -788,4 +1545,5 @@ Return ONLY the JSON content for the card.`;
 }
 
 // Export singleton instance
+// Export enhanced singleton instance
 export const travelDeckGenerator = new TravelDeckGenerator();

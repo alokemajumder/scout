@@ -1,6 +1,20 @@
 // Travel Deck Type Definitions
 import { TravelDeckType } from '@/lib/api/openrouter-config';
 
+// Base content metadata
+export interface ContentMetadata {
+  confidence?: number;
+  dataSource?: 'api' | 'llm_enhanced' | 'llm_generated';
+  model?: string;
+  processingTime?: number;
+  qualityIndicators?: {
+    completeness: number;
+    accuracy: number;
+    relevance: number;
+    actionability: number;
+  };
+}
+
 // Base card interface
 export interface TravelCard {
   id: string;
@@ -27,6 +41,7 @@ export interface OverviewCard extends TravelCard {
     currency: string;
     languages: string[];
     quickTips: string[];
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -59,6 +74,7 @@ export interface ItineraryCard extends TravelCard {
         checkOut?: string;
       };
     }>;
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -103,6 +119,7 @@ export interface TransportCard extends TravelCard {
       duration: string;
       cost: number;
     }>;
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -134,6 +151,7 @@ export interface AccommodationCard extends TravelCard {
       type: string;
       priceRange: string;
     }>;
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -167,6 +185,7 @@ export interface AttractionsCard extends TravelCard {
       description: string;
       whySpecial: string;
     }>;
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -201,6 +220,7 @@ export interface DiningCard extends TravelCard {
       mustTry: string[];
     }>;
     dietaryTips: string[];
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -232,6 +252,7 @@ export interface BudgetCard extends TravelCard {
     savingTips: string[];
     paymentMethods: string[];
     tippingGuide?: string;
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -253,6 +274,7 @@ export interface VisaCard extends TravelCard {
     website?: string;
     additionalRequirements?: string[];
     tips?: string[];
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -285,6 +307,7 @@ export interface WeatherCard extends TravelCard {
       essentials: string[];
       optional: string[];
     };
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -321,6 +344,7 @@ export interface CultureCard extends TravelCard {
       description: string;
     }>;
     dressCode?: string[];
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -359,6 +383,7 @@ export interface EmergencyCard extends TravelCard {
       coverage: string[];
       providers?: string[];
     };
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -394,6 +419,7 @@ export interface ShoppingCard extends TravelCard {
       prohibited: string[];
     };
     tips: string[];
+    _metadata?: ContentMetadata;
   };
 }
 
@@ -429,5 +455,10 @@ export interface TravelDeck {
     travelerCount: number;
     generatedBy: string;
     version: string;
+    processingTime?: number;
+    contentStrategy?: string;
+    qualityMetrics?: any;
+    apiDataSources?: string[];
+    averageConfidence?: number;
   };
 }
