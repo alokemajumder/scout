@@ -12,13 +12,23 @@ interface OverviewCardViewProps {
 
 export default function OverviewCardView({ card, isFullscreen }: OverviewCardViewProps) {
   const { content } = card;
+  
+  // Safety check for content
+  if (!content) {
+    return (
+      <div className="space-y-6 p-4 text-center">
+        <p className="text-gray-500">No overview data available</p>
+        <p className="text-sm text-gray-400">Please try regenerating this card</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Destination Header */}
       <div className="text-center pb-4 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-900">{content.destination}</h1>
-        <p className="text-lg text-gray-600 mt-1">{content.country}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{content.destination || 'Unknown Destination'}</h1>
+        <p className="text-lg text-gray-600 mt-1">{content.country || 'Unknown Country'}</p>
       </div>
 
       {/* Key Information Grid */}
@@ -27,7 +37,7 @@ export default function OverviewCardView({ card, isFullscreen }: OverviewCardVie
           <Calendar className="w-5 h-5 text-blue-600 mt-1" />
           <div>
             <p className="font-medium text-gray-900">Duration</p>
-            <p className="text-gray-600">{content.duration}</p>
+            <p className="text-gray-600">{content.duration || 'N/A'}</p>
           </div>
         </div>
 
@@ -35,7 +45,7 @@ export default function OverviewCardView({ card, isFullscreen }: OverviewCardVie
           <Users className="w-5 h-5 text-green-600 mt-1" />
           <div>
             <p className="font-medium text-gray-900">Travel Type</p>
-            <p className="text-gray-600 capitalize">{content.travelType}</p>
+            <p className="text-gray-600 capitalize">{content.travelType || 'N/A'}</p>
           </div>
         </div>
 

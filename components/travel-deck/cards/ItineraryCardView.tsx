@@ -16,7 +16,17 @@ export default function ItineraryCardView({ card, isFullscreen }: ItineraryCardV
   const { content } = card;
   const [selectedDay, setSelectedDay] = useState(0);
   
-  const currentDay = content.days[selectedDay];
+  // Safety checks for content structure
+  if (!content || !content.days || !Array.isArray(content.days) || content.days.length === 0) {
+    return (
+      <div className="space-y-4 p-4 text-center">
+        <p className="text-gray-500">No itinerary data available</p>
+        <p className="text-sm text-gray-400">Please try regenerating this card</p>
+      </div>
+    );
+  }
+  
+  const currentDay = content.days[selectedDay] || content.days[0];
 
   const getMealIcon = (type: string) => {
     switch (type) {
@@ -31,7 +41,7 @@ export default function ItineraryCardView({ card, isFullscreen }: ItineraryCardV
     <div className="space-y-4">
       {/* Day Selector */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {content.days.map((day, index) => (
+        {content.days?.map((day, index) => (
           <Button
             key={index}
             variant={selectedDay === index ? 'default' : 'outline'}

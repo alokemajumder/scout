@@ -35,6 +35,22 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
 
   const currentCard = deck.cards[currentCardIndex];
   const totalCards = deck.cards.length;
+  
+  console.log(`TravelDeckView - Current index: ${currentCardIndex}, Total cards: ${totalCards}`);
+  console.log(`Current card:`, currentCard);
+  
+  // Handle missing or invalid card
+  if (!currentCard) {
+    console.error(`No card found at index ${currentCardIndex}`);
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500">Error: Card not found</p>
+          <p className="text-sm text-gray-500">Index: {currentCardIndex}, Total: {totalCards}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Keyboard navigation
   useEffect(() => {
@@ -68,33 +84,51 @@ export default function TravelDeckView({ deck, onClose, className = '' }: Travel
   };
 
   const renderCard = (card: TravelDeckCard) => {
-    switch (card.type) {
-      case 'overview':
-        return <OverviewCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'itinerary':
-        return <ItineraryCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'transport':
-        return <TransportCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'accommodation':
-        return <AccommodationCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'attractions':
-        return <AttractionsCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'dining':
-        return <DiningCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'budget':
-        return <BudgetCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'visa':
-        return <VisaCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'weather':
-        return <WeatherCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'culture':
-        return <CultureCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'emergency':
-        return <EmergencyCardView card={card as any} isFullscreen={isFullscreen} />;
-      case 'shopping':
-        return <ShoppingCardView card={card as any} isFullscreen={isFullscreen} />;
-      default:
-        return <div>Unknown card type</div>;
+    console.log(`Rendering card:`, { type: card.type, id: card.id, hasContent: !!card.content });
+    
+    try {
+      switch (card.type) {
+        case 'overview':
+          return <OverviewCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'itinerary':
+          return <ItineraryCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'transport':
+          return <TransportCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'accommodation':
+          return <AccommodationCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'attractions':
+          return <AttractionsCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'dining':
+          return <DiningCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'budget':
+          return <BudgetCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'visa':
+          return <VisaCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'weather':
+          return <WeatherCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'culture':
+          return <CultureCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'emergency':
+          return <EmergencyCardView card={card as any} isFullscreen={isFullscreen} />;
+        case 'shopping':
+          return <ShoppingCardView card={card as any} isFullscreen={isFullscreen} />;
+        default:
+          console.warn(`Unknown card type: ${(card as any).type}`);
+          return (
+            <div className="p-4 text-center text-gray-500">
+              <p>Unknown card type: {(card as any).type}</p>
+              <p className="text-sm mt-2">Card ID: {(card as any).id}</p>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error(`Error rendering card ${card.type}:`, error);
+      return (
+        <div className="p-4 text-center text-red-500">
+          <p>Error loading {card.type} card</p>
+          <p className="text-sm mt-2">Please try again</p>
+        </div>
+      );
     }
   };
 
