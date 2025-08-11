@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     // Create user
     const user = await userRepository.createLocalUser({ email, password, name });
     
-    // Create session
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    // Create session with 24-hour expiry for security
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const sessionId = await userRepository.createSession(user.id, expiresAt);
 
     // Remove password hash from response

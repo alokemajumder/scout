@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { userRepository } from '@/lib/db/simple-user-repository';
 import { LoginCredentials, LocalUser } from '@/lib/types/user';
+import { authRateLimiter, createRateLimitResponse } from '@/lib/auth/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  // Check rate limit first
+  if (authRateLimiter.isRateLimited(request)) {
+    const info = authRateLimiter.getRateLimitInfo(request);
+    return createRateLimitResponse(info.resetTime, info.remaining);
+  }
+
   try {
     const body = await request.json();
     const { email, password }: LoginCredentials = body;
@@ -20,6 +27,8 @@ export async function POST(request: NextRequest) {
     const user = await userRepository.findByEmail(email) as LocalUser;
     
     if (!user) {
+      // Record failed attempt
+      authRateLimiter.recordAttempt(request, false);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -27,6 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.provider !== 'local') {
+      // This is not a failed login attempt, just wrong method
       return NextResponse.json(
         { success: false, error: 'Please use social login for this account' },
         { status: 401 }
@@ -37,15 +47,20 @@ export async function POST(request: NextRequest) {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     
     if (!isMatch) {
+      // Record failed attempt
+      authRateLimiter.recordAttempt(request, false);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Create session
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    // Create session with 24-hour expiry for security
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const sessionId = await userRepository.createSession(user.id, expiresAt);
+
+    // Record successful attempt (this will reset the counter)
+    authRateLimiter.recordAttempt(request, true);
 
     // Remove password hash from response
     const { passwordHash, ...userResponse } = user;

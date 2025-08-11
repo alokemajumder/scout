@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { User, LocalUser, SocialUser, SignupCredentials } from '@/lib/types/user';
 
 // Simple JSON file-based storage for development
@@ -191,7 +192,8 @@ class SimpleUserRepository {
   async createSession(userId: string, expiresAt: Date): Promise<string> {
     const sessions = this.readSessions();
     
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+    // Use cryptographically secure session ID generation
+    const sessionId = `session_${crypto.randomBytes(32).toString('hex')}`;
     const session: SessionRecord = {
       sessionId,
       userId,

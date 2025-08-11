@@ -23,19 +23,14 @@ export async function POST(request: NextRequest) {
 
     const travelInput: TravelCaptureInput = validation.data;
     
-    console.log('Creating comprehensive travel deck for:', {
-      destination: travelInput.destination,
-      origin: travelInput.origin,
-      travelType: travelInput.travelType,
-      duration: travelInput.duration
-    });
+    // Creating comprehensive travel deck (removed sensitive data from logs)
 
     // Fetch travel data from RapidAPI
-    console.log('Fetching travel data from RapidAPI...');
+    // Fetching travel data from RapidAPI
     const apiData = await rapidAPIClient.getTravelData(travelInput);
     
     // Generate comprehensive travel deck
-    console.log('Generating travel deck with AI...');
+    // Generating travel deck with AI
     const deck = await travelDeckGenerator.generateCompleteDeck(travelInput, apiData);
     
     // Return the deck

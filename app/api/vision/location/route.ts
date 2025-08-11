@@ -1,6 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { visionLocationService } from '@/lib/api/vision';
 
+// File upload validation constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+function validateImageData(imageData: string): { isValid: boolean; error?: string } {
+  if (!imageData || typeof imageData !== 'string') {
+    return { isValid: false, error: 'Invalid image data format' };
+  }
+
+  // Check if it's a valid data URL
+  if (!imageData.startsWith('data:image/')) {
+    return { isValid: false, error: 'Invalid image data URL format' };
+  }
+
+  // Extract MIME type
+  const mimeTypeMatch = imageData.match(/^data:image\/(\w+);base64,/);
+  if (!mimeTypeMatch) {
+    return { isValid: false, error: 'Invalid image format' };
+  }
+
+  const mimeType = `image/${mimeTypeMatch[1]}`;
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return { isValid: false, error: `Unsupported image type: ${mimeType}. Allowed types: JPEG, PNG, WebP, GIF` };
+  }
+
+  // Check file size (approximate from base64)
+  const base64Data = imageData.split(',')[1];
+  if (!base64Data) {
+    return { isValid: false, error: 'Invalid base64 image data' };
+  }
+
+  const sizeInBytes = (base64Data.length * 3) / 4;
+  if (sizeInBytes > MAX_FILE_SIZE) {
+    return { isValid: false, error: `Image too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB` };
+  }
+
+  return { isValid: true };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -15,8 +54,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Validate image data
+    const validation = validateImageData(imageBase64);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+    
+    // Validate context if provided
+    if (context && (typeof context !== 'string' || context.length > 500)) {
+      return NextResponse.json(
+        { success: false, error: 'Context must be a string under 500 characters' },
+        { status: 400 }
+      );
+    }
 
-    console.log('Processing vision-based location identification...');
+    // Processing vision-based location identification (removed sensitive logging)
 
     // Use enhanced identification with context if provided
     const result = context 
@@ -24,7 +80,7 @@ export async function POST(request: NextRequest) {
       : await visionLocationService.identifyLocationFromImage(imageBase64);
 
     if (result.success && result.location) {
-      console.log('Location identified successfully:', result.location.location);
+      // Location identified successfully (removed sensitive data from logs)
       
       return NextResponse.json({
         success: true,
@@ -33,7 +89,7 @@ export async function POST(request: NextRequest) {
         message: 'Location identified successfully'
       });
     } else {
-      console.log('Location identification failed:', result.error);
+      // Location identification failed (removed sensitive data from logs)
       
       return NextResponse.json({
         success: false,
