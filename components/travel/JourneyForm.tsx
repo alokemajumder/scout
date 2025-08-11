@@ -205,8 +205,8 @@ export default function JourneyForm({ onComplete, isGuest = true }: JourneyFormP
           <TravelTypeSelection
             selectedTravelType={formState.data.step1?.travelType}
             selectedGroupSubType={formState.data.step1?.groupSubType}
-            onTravelTypeChange={(type) => updateStep1({ ...formState.data.step1, travelType: type })}
-            onGroupSubTypeChange={(subType) => updateStep1({ ...formState.data.step1, groupSubType: subType })}
+            onTravelTypeChange={(type) => updateStep1({ ...(formState.data.step1 || {}), travelType: type })}
+            onGroupSubTypeChange={(subType) => updateStep1({ ...(formState.data.step1 || { travelType: 'single' }), groupSubType: subType })}
           />
         );
       case 2:

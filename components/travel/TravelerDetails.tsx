@@ -332,7 +332,7 @@ export default function TravelerDetails({
           {data.groupComposition && (
             <div className="space-y-3">
               <Label className="text-base font-medium">
-                Number of {data.groupComposition === 'families' ? 'Families' : 'People'} 
+                Number of Units 
                 (Optional)
               </Label>
               <Input
@@ -343,7 +343,7 @@ export default function TravelerDetails({
                 onChange={(e) =>
                   onChange({ ...data, groupFamilies: parseInt(e.target.value) })
                 }
-                placeholder={`Number of ${data.groupComposition === 'families' ? 'families' : 'people'}`}
+                placeholder="Number of units in your group"
                 className="max-w-xs"
               />
             </div>
@@ -357,7 +357,7 @@ export default function TravelerDetails({
             <p className="text-sm text-gray-600">
               {data.groupSize} people total
               {data.groupComposition && ` • ${data.groupComposition}`}
-              {data.groupFamilies && ` • ${data.groupFamilies} ${data.groupComposition === 'families' ? 'families' : 'units'}`}
+              {data.groupFamilies && ` • ${data.groupFamilies} units`}
             </p>
           </div>
         )}
