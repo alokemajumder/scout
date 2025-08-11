@@ -1,4 +1,5 @@
 import { TravelCaptureInput } from '@/lib/types/travel';
+import { rateLimiter, extractApiHost } from './rate-limiter';
 
 // RapidAPI configuration
 const RAPIDAPI_BASE_URL = 'https://rapidapi.com';
@@ -28,7 +29,7 @@ export class RapidAPIClient {
   }
 
   /**
-   * Generic method to call RapidAPI endpoints
+   * Generic method to call RapidAPI endpoints with rate limiting
    */
   private async callAPI(
     host: string,
@@ -36,13 +37,16 @@ export class RapidAPIClient {
     params: Record<string, any> = {},
     method: 'GET' | 'POST' = 'GET'
   ): Promise<any> {
-    const headers = {
+    // Check rate limit before making request
+    await rateLimiter.waitIfNeeded(host);
+    
+    const headers: Record<string, string> = {
       'X-RapidAPI-Key': this.apiKey,
       'X-RapidAPI-Host': host,
-      'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
 
-    const url = `https://${host}${endpoint}`;
+    let url = `https://${host}${endpoint}`;
     const options: RequestInit = {
       method,
       headers,
@@ -50,9 +54,15 @@ export class RapidAPIClient {
 
     // Add query parameters for GET requests
     if (method === 'GET' && Object.keys(params).length > 0) {
-      const queryParams = new URLSearchParams(params).toString();
-      options.method = 'GET';
+      const queryParams = new URLSearchParams(
+        Object.entries(params).reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {} as Record<string, string>)
+      ).toString();
+      url += `?${queryParams}`;
     } else if (method === 'POST') {
+      headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(params);
     }
 
@@ -63,6 +73,9 @@ export class RapidAPIClient {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+        // Record the request for rate limiting
+        rateLimiter.recordRequest(host);
+
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
@@ -72,6 +85,14 @@ export class RapidAPIClient {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
+          
+          // Check for rate limit error
+          if (response.status === 429) {
+            console.warn(`Rate limit hit for ${host}. Status: ${response.status}`);
+            await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+            continue;
+          }
+          
           throw new Error(
             errorData?.message || `API call failed with status ${response.status}`
           );
@@ -83,7 +104,12 @@ export class RapidAPIClient {
           message: error instanceof Error ? error.message : 'Unknown API error',
           status: error instanceof Error && 'status' in error ? (error as any).status : undefined,
           code: error instanceof Error && 'code' in error ? (error as any).code : undefined,
-          details: { attempt: attempt + 1, maxRetries: this.retries + 1 },
+          details: { 
+            attempt: attempt + 1, 
+            maxRetries: this.retries + 1,
+            host,
+            rateLimitStatus: rateLimiter.getRemainingRequests(host)
+          },
         };
 
         console.error(`RapidAPI call failed (attempt ${attempt + 1}):`, lastError);
@@ -127,7 +153,9 @@ export class RapidAPIClient {
     try {
       return await this.callAPI(
         'ai-travel-itinerary-generator-pro2.p.rapidapi.com',
-        '/v1/preferences/interests'
+        '/v1/preferences/interests',
+        {},
+        'GET'
       );
     } catch (error) {
       console.error('Travel Interests API error:', error);
@@ -377,6 +405,20 @@ export class RapidAPIClient {
     const isDestinationIndian = indianCities.some(city => destination.toLowerCase().includes(city.toLowerCase()));
 
     return isOriginIndian && isDestinationIndian;
+  }
+
+  /**
+   * Get rate limit status for all APIs
+   */
+  getRateLimitStatus() {
+    return rateLimiter.getStatus();
+  }
+
+  /**
+   * Get remaining requests for a specific API
+   */
+  getRemainingRequests(host: string): number {
+    return rateLimiter.getRemainingRequests(host);
   }
 
   // Mock data methods for development

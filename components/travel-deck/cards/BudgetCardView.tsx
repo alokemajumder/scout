@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { DollarSign, TrendingUp, PiggyBank, CreditCard, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, TrendingUp, PiggyBank, CreditCard, Info, ArrowLeftRight } from 'lucide-react';
 import { BudgetCard } from '@/lib/types/travel-deck';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { currencyAPI } from '@/lib/api/currency';
 
 interface BudgetCardViewProps {
   card: BudgetCard;
@@ -15,6 +16,38 @@ interface BudgetCardViewProps {
 export default function BudgetCardView({ card, isFullscreen }: BudgetCardViewProps) {
   const { content } = card;
   const [selectedBudgetTier, setSelectedBudgetTier] = useState<'tight' | 'comfortable' | 'luxury'>('comfortable');
+  const [showCurrencyConverter, setShowCurrencyConverter] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [convertedBudgets, setConvertedBudgets] = useState<Record<string, number>>({});
+  
+  // Get destination currency
+  const destinationCurrency = content.currency === 'INR' ? 'USD' : 'INR';
+  
+  useEffect(() => {
+    if (showCurrencyConverter) {
+      loadExchangeRate();
+    }
+  }, [showCurrencyConverter, selectedCurrency]);
+  
+  const loadExchangeRate = async () => {
+    try {
+      const rate = await currencyAPI.getExchangeRate(content.currency, selectedCurrency);
+      if (rate) {
+        setExchangeRate(rate.rate);
+        
+        // Convert budget amounts
+        const converted = {
+          tight: content.perPerson.tight * rate.rate,
+          comfortable: content.perPerson.comfortable * rate.rate,
+          luxury: content.perPerson.luxury * rate.rate
+        };
+        setConvertedBudgets(converted);
+      }
+    } catch (error) {
+      console.error('Failed to load exchange rate:', error);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -62,6 +95,63 @@ export default function BudgetCardView({ card, isFullscreen }: BudgetCardViewPro
           ))}
         </div>
       </div>
+
+      {/* Currency Converter Toggle */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCurrencyConverter(!showCurrencyConverter)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          Currency Converter
+        </Button>
+        {content.exchangeRate && (
+          <span className="text-xs text-gray-500">
+            1 {content.currency} = ₹{content.exchangeRate}
+          </span>
+        )}
+      </div>
+
+      {/* Currency Converter */}
+      {showCurrencyConverter && (
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedCurrency}
+              onChange={(e) => setSelectedCurrency(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="AED">AED - UAE Dirham</option>
+              <option value="THB">THB - Thai Baht</option>
+              <option value="SGD">SGD - Singapore Dollar</option>
+              <option value="JPY">JPY - Japanese Yen</option>
+            </select>
+            {exchangeRate && (
+              <Badge variant="secondary" className="text-xs">
+                1 {content.currency} = {exchangeRate.toFixed(4)} {selectedCurrency}
+              </Badge>
+            )}
+          </div>
+          
+          {Object.keys(convertedBudgets).length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {budgetTiers.map((tier) => (
+                <div key={tier.key} className="text-center p-2 bg-white rounded border">
+                  <p className="text-xs text-gray-600">{tier.label}</p>
+                  <p className="font-semibold text-sm">
+                    {currencyAPI.formatCurrency(convertedBudgets[tier.key as keyof typeof convertedBudgets], selectedCurrency)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selected Budget Details */}
       <div className={cn(
