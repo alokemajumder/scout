@@ -275,20 +275,78 @@ export default function ComprehensiveTravelGuide({ deck, onClose, className = ''
       
       case 'budget':
         const budgetContent = card.content as any;
-        if (budgetContent.breakdown) {
+        if (budgetContent.budget) {
           return (
-            <div className="space-y-4">
-              {Object.entries(budgetContent.breakdown).map(([category, amount]: [string, any]) => (
-                <div key={category} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="capitalize font-medium">{category}</span>
-                  <span className="font-semibold text-green-600">${amount}</span>
+            <div className="space-y-6">
+              {/* Budget Overview */}
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    {budgetContent.budget.level} Budget
+                  </h4>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-green-600">
+                      {budgetContent.currencySymbol} {budgetContent.budget.total.toLocaleString()}
+                    </div>
+                    {budgetContent.inrEquivalent && (
+                      <div className="text-sm text-gray-600">
+                        ≈ ₹{budgetContent.inrEquivalent.total.toLocaleString()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))}
-              {budgetContent.total && (
-                <div className="border-t pt-3">
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span>Total Estimated Cost</span>
-                    <span className="text-green-600">${budgetContent.total}</span>
+                <div className="text-sm text-gray-600">
+                  Daily Average: {budgetContent.currencySymbol} {budgetContent.budget.daily.toLocaleString()}
+                  {budgetContent.inrEquivalent && (
+                    <span> (≈ ₹{budgetContent.inrEquivalent.daily.toLocaleString()})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Budget Breakdown */}
+              <div className="space-y-3">
+                <h5 className="font-semibold text-gray-800 mb-3">Budget Breakdown</h5>
+                {Object.entries(budgetContent.budget.breakdown).map(([category, amount]: [string, any]) => (
+                  <div key={category} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="capitalize font-medium">{category.replace(/([A-Z])/g, ' $1')}</span>
+                    <div className="text-right">
+                      <div className="font-semibold text-green-600">
+                        {budgetContent.currencySymbol} {amount.toLocaleString()}
+                      </div>
+                      {budgetContent.inrEquivalent && (
+                        <div className="text-xs text-gray-500">
+                          ≈ ₹{Math.round(amount * budgetContent.exchangeRate).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Money Saving Tips */}
+              {budgetContent.tips && (
+                <div>
+                  <h5 className="font-semibold text-gray-800 mb-3">💡 Money Saving Tips</h5>
+                  <ul className="space-y-2">
+                    {budgetContent.tips.map((tip: string, index: number) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-blue-500 mt-1">•</span>
+                        <span className="text-gray-700">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Exchange Rate Info */}
+              {!budgetContent.isDomestic && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-blue-800">
+                    <DollarSign className="w-4 h-4" />
+                    <span>
+                      Exchange Rate: 1 {budgetContent.currency} = ₹{budgetContent.exchangeRate} 
+                      <span className="text-xs ml-1">(approx.)</span>
+                    </span>
                   </div>
                 </div>
               )}
