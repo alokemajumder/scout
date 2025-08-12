@@ -115,12 +115,24 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
     
     try {
+      const searchEmail = email.toLowerCase();
+      console.log('Searching for user with email:', searchEmail);
+      
       const result = await this.usersCollection
-        .query({ email: email.toLowerCase() })
+        .query({ email: searchEmail })
         .Limit(1)
         .exec();
       
-      return result.length > 0 ? result[0] : null;
+      console.log('Query result:', {
+        resultCount: Array.isArray(result) ? result.length : 0,
+        foundUser: result && result.length > 0 ? {
+          id: result[0]?.id,
+          email: result[0]?.email,
+          hasPasswordHash: !!result[0]?.passwordHash
+        } : null
+      });
+      
+      return result && result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Error finding user by email:', error);
       return null;
@@ -220,6 +232,13 @@ class AxioDBUserRepository {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(credentials.password, saltRounds);
 
+    console.log('Creating user with:', {
+      email: credentials.email.toLowerCase(),
+      passwordLength: credentials.password.length,
+      hashLength: passwordHash.length,
+      hashPreview: passwordHash.substring(0, 10) + '...'
+    });
+
     const user: User = {
       id: `user_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`,
       email: credentials.email.toLowerCase(),
@@ -238,6 +257,7 @@ class AxioDBUserRepository {
 
     try {
       await this.usersCollection.insert(user);
+      console.log('User created successfully with ID:', user.id);
       return user;
     } catch (error) {
       console.error('Error creating local user:', error);

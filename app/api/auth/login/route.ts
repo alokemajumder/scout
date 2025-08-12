@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
     // Find user
     const user = await userRepository.findByEmail(email);
     
+    console.log('Login attempt:', { email: email.toLowerCase(), userFound: !!user });
+    
     if (!user) {
       // Record failed attempt
       authRateLimiter.recordAttempt(request, false);
@@ -36,8 +38,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('User found:', { 
+      id: user.id, 
+      email: user.email, 
+      hasPasswordHash: !!user.passwordHash,
+      passwordHashLength: user.passwordHash?.length || 0
+    });
+
     // Verify password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
+    console.log('Password comparison result:', isMatch);
     
     if (!isMatch) {
       // Record failed attempt
