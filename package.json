@@ -25,7 +25,7 @@
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/passport-local": "^1.0.38",
     "@vercel/speed-insights": "^1.2.0",
-    "axiodb": "^2.25.71",
+    "axiodb": "^2.25.73",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -9,7 +9,10 @@ let db: AxioDB | null = null;
 
 const getDB = () => {
   if (!db) {
+    console.log('Creating new AxioDB instance');
     db = new AxioDB();
+  } else {
+    console.log('Reusing existing AxioDB instance');
   }
   return db;
 };
@@ -42,8 +45,8 @@ class AxioDBUserRepository {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     
-    // Skip initialization during build process
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    // Skip initialization only during build process, not during runtime
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
       console.log('Skipping AxioDB initialization during build phase');
       return;
     }
@@ -77,7 +80,11 @@ class AxioDBUserRepository {
       );
 
       this.initialized = true;
-      console.log('AxioDB User Repository initialized successfully');
+      console.log('AxioDB User Repository initialized successfully', {
+        environment: process.env.NODE_ENV,
+        isVercel: !!process.env.VERCEL,
+        buildPhase: process.env.NEXT_PHASE
+      });
     } catch (error) {
       console.error('Failed to initialize AxioDB User Repository:', error);
       throw error;
@@ -85,6 +92,12 @@ class AxioDBUserRepository {
   }
 
   private async ensureInitialized(): Promise<void> {
+    console.log('ensureInitialized called:', { 
+      initialized: this.initialized,
+      environment: process.env.NODE_ENV,
+      isVercel: !!process.env.VERCEL
+    });
+    
     if (!this.initialized) {
       await this.initialize();
     }
@@ -251,8 +264,14 @@ class AxioDBUserRepository {
     };
 
     try {
-      await this.usersCollection.insert(user);
+      const insertResult = await this.usersCollection.insert(user);
+      console.log('User creation result:', insertResult);
       console.log('User created successfully with ID:', user.id);
+      
+      // Immediately try to find the user to verify insertion
+      const verifyUser = await this.findByEmail(user.email);
+      console.log('Verification - user found after creation:', !!verifyUser);
+      
       return user;
     } catch (error) {
       console.error('Error creating local user:', error);
