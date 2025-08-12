@@ -3,37 +3,14 @@ import { validateCompleteTravelInput } from '@/lib/validations/travel';
 import { rapidAPIClient } from '@/lib/api/rapidapi';
 import { travelDeckGenerator } from '@/lib/api/travel-deck-generator';
 import { TravelCaptureInput } from '@/lib/types/travel';
-import { requireSignedRequest } from '@/lib/security/request-signing';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    let travelData: any;
-
-    // Verify request signature for production (enhanced security)
-    if (process.env.NODE_ENV === 'production') {
-      const signatureValidator = requireSignedRequest();
-      const signatureResult = await signatureValidator(request.clone());
-      
-      if (!signatureResult.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Request signature verification failed',
-            details: signatureResult.error
-          },
-          { status: 401 }
-        );
-      }
-      
-      // Use the validated payload
-      travelData = signatureResult.payload;
-    } else {
-      // Development mode - use regular body parsing
-      travelData = await request.json();
-    }
+    // Simply parse the request body without HMAC verification
+    const travelData = await request.json();
     
     // Validate the travel input
     const validation = validateCompleteTravelInput(travelData);

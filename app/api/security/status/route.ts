@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth/middleware';
 import { enhancedSessionManager } from '@/lib/auth/enhanced-session';
 import { dbManager } from '@/lib/db/db-config';
-import { requestSigner } from '@/lib/security/request-signing';
 
 // Security status endpoint - requires authentication
 export async function GET(request: NextRequest) {
@@ -29,7 +28,6 @@ export async function GET(request: NextRequest) {
     const sessionStats = enhancedSessionManager.getSessionStats();
     const dbMetrics = dbManager.getMetrics();
     const dbConfig = dbManager.getConfig();
-    const nonceStats = requestSigner.getNonceStats();
 
     const securityStatus = {
       timestamp: new Date().toISOString(),
@@ -42,15 +40,11 @@ export async function GET(request: NextRequest) {
         configuration: dbConfig,
         healthStatus: dbMetrics.failedConnections > 5 ? 'warning' : 'healthy'
       },
-      requestSigning: {
-        ...nonceStats,
-        healthStatus: 'healthy'
-      },
       security: {
         environment: process.env.NODE_ENV,
         httpsEnabled: process.env.NODE_ENV === 'production',
-        captchaEnabled: !!process.env.ALTCHA_HMAC_KEY,
-        hmacSigningEnabled: !!process.env.HMAC_SECRET_KEY,
+        captchaEnabled: false,
+        hmacSigningEnabled: false,
         rateLimitingEnabled: true
       },
       recommendations: generateSecurityRecommendations(sessionStats, dbMetrics)
