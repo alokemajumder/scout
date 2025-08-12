@@ -430,7 +430,6 @@ const Scout: React.FC = () => {
           // Refresh travel cards after login
           setTravelCards(getGuestTravelCards());
         }}
-        defaultMode={authMode}
       />
     </div>
   );

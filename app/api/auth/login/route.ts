@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { userRepository } from '@/lib/db/axiodb-user-repository';
-import { LoginCredentials, LocalUser } from '@/lib/types/user';
+import { LoginCredentials, User } from '@/lib/types/user';
 import { authRateLimiter, createRateLimitResponse } from '@/lib/auth/rate-limiter';
 
 export async function POST(request: NextRequest) {
@@ -24,21 +24,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = await userRepository.findByEmail(email) as LocalUser;
+    const user = await userRepository.findByEmail(email);
     
     if (!user) {
       // Record failed attempt
       authRateLimiter.recordAttempt(request, false);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-
-    if (user.provider !== 'local') {
-      // This is not a failed login attempt, just wrong method
-      return NextResponse.json(
-        { success: false, error: 'Please use social login for this account' },
         { status: 401 }
       );
     }

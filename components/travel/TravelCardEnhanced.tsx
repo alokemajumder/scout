@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
-import { Calendar, MapPin, User, Users, Clock, Eye, Star, ArrowRight, Sparkles, Globe2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, MapPin, User, Users, Clock, Eye, Star, ArrowRight, Sparkles, Globe2, Share, Globe } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import MakePublicModal from './MakePublicModal';
 
 interface TravelCard {
   id: string;
@@ -16,11 +18,13 @@ interface TravelCard {
   expiresAt?: string;
   isGuestCard: boolean;
   deck?: any;
+  isPublic?: boolean;
 }
 
 interface TravelCardEnhancedProps {
   card: TravelCard;
   onClick: () => void;
+  onPublicSuccess?: () => void;
   className?: string;
 }
 
@@ -55,12 +59,34 @@ const getDestinationGradient = (destination: string) => {
   return gradients[Math.abs(hash) % gradients.length];
 };
 
-export function TravelCardEnhanced({ card, onClick, className }: TravelCardEnhancedProps) {
+export function TravelCardEnhanced({ card, onClick, onPublicSuccess, className }: TravelCardEnhancedProps) {
+  const { user, isAuthenticated } = useAuth();
+  const [showMakePublic, setShowMakePublic] = useState(false);
+  
   const typeInfo = getTravelTypeInfo(card.travelType);
   const TypeIcon = typeInfo.icon;
   const destinationGradient = getDestinationGradient(card.destination);
   const createdDate = new Date(card.createdAt);
   const isExpiring = card.expiresAt && new Date(card.expiresAt) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const canMakePublic = isAuthenticated && !card.isGuestCard && card.deck && !card.isPublic;
+
+  const handleMakePublic = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      // Could show login modal here
+      return;
+    }
+
+    setShowMakePublic(true);
+  };
+
+
+  const handlePublicSuccess = () => {
+    setShowMakePublic(false);
+    onPublicSuccess?.();
+  };
 
   return (
     <Card
@@ -124,6 +150,15 @@ export function TravelCardEnhanced({ card, onClick, className }: TravelCardEnhan
           </div>
           
           <div className="flex flex-col items-end space-y-2">
+            {card.isPublic && (
+              <Badge 
+                className="bg-web3-violet-100 text-web3-violet-700 dark:bg-web3-violet-900/30 dark:text-web3-violet-400 border-0"
+              >
+                <Globe className="w-3 h-3 mr-1" />
+                Public
+              </Badge>
+            )}
+            
             {card.deck && (
               <Badge 
                 className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0"
@@ -186,29 +221,51 @@ export function TravelCardEnhanced({ card, onClick, className }: TravelCardEnhan
             </div>
           )}
 
-          {/* Action Button */}
-          <Button
-            className={cn(
-              'w-full group/btn',
-              'bg-gradient-to-r from-web3-violet-600 to-web3-purple-600',
-              'hover:from-web3-violet-500 hover:to-web3-purple-500',
-              'dark:from-web3-violet-500 dark:to-web3-purple-500',
-              'dark:hover:from-web3-violet-400 dark:hover:to-web3-purple-400',
-              'shadow-lg hover:shadow-xl',
-              'border-0 text-white font-semibold',
-              'transition-all duration-300'
+          {/* Action Buttons */}
+          <div className="space-y-2">
+            <Button
+              className={cn(
+                'w-full group/btn',
+                'bg-gradient-to-r from-web3-violet-600 to-web3-purple-600',
+                'hover:from-web3-violet-500 hover:to-web3-purple-500',
+                'dark:from-web3-violet-500 dark:to-web3-purple-500',
+                'dark:hover:from-web3-violet-400 dark:hover:to-web3-purple-400',
+                'shadow-lg hover:shadow-xl',
+                'border-0 text-white font-semibold',
+                'transition-all duration-300'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              <span className="flex items-center justify-center space-x-2">
+                <Globe2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                <span>{card.deck ? 'View Travel Guide' : 'View Details'}</span>
+                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+              </span>
+            </Button>
+
+            {/* Make Public Button */}
+            {canMakePublic && (
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full group/share',
+                  'border-web3-violet-300 dark:border-web3-violet-700',
+                  'text-web3-violet-700 dark:text-web3-violet-400',
+                  'hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20',
+                  'transition-all duration-300'
+                )}
+                onClick={handleMakePublic}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <Share className="w-4 h-4 group-hover/share:scale-110 transition-transform" />
+                  <span>Make Public</span>
+                </span>
+              </Button>
             )}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-          >
-            <span className="flex items-center justify-center space-x-2">
-              <Globe2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              <span>{card.deck ? 'View Travel Guide' : 'View Details'}</span>
-              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-            </span>
-          </Button>
+          </div>
         </div>
       </div>
 
@@ -217,6 +274,16 @@ export function TravelCardEnhanced({ card, onClick, className }: TravelCardEnhan
       
       {/* Corner Decoration */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-web3-violet-500/20 to-transparent rounded-bl-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Modals */}
+      <MakePublicModal
+        isOpen={showMakePublic}
+        onClose={() => setShowMakePublic(false)}
+        onSuccess={handlePublicSuccess}
+        cardId={card.id}
+        destination={card.destination}
+        origin={card.origin}
+      />
     </Card>
   );
 }
