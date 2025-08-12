@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    
+
     // Create enhanced session with device fingerprinting
     const sessionId = await enhancedSessionManager.createSession(user.id, request, false);
 
