@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { getUserFromSession } from '@/lib/auth/session';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 // Make a card public
 export async function POST(request: NextRequest) {
   try {

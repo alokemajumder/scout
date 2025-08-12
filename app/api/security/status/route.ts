@@ -3,6 +3,9 @@ import { getAuthenticatedUser } from '@/lib/auth/middleware';
 import { enhancedSessionManager } from '@/lib/auth/enhanced-session';
 import { dbManager } from '@/lib/db/db-config';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 // Security status endpoint - requires authentication
 export async function GET(request: NextRequest) {
   try {
