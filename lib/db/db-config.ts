@@ -30,7 +30,7 @@ class SecureDatabaseManager {
     this.config = {
       connectionPoolLimit: parseInt(process.env.DB_POOL_LIMIT || '10'),
       queryTimeout: parseInt(process.env.DB_QUERY_TIMEOUT || '30000'), // 30 seconds
-      enableEncryption: process.env.NODE_ENV === 'production',
+      enableEncryption: false,
       maxRetries: 3,
       retryDelay: 1000,
       healthCheckInterval: 60000, // 1 minute

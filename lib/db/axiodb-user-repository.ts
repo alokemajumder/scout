@@ -21,8 +21,7 @@ const SESSIONS_COLLECTION = 'sessions';
 const TRAVEL_CARDS_COLLECTION = 'travel_cards';
 const PUBLIC_CARDS_COLLECTION = 'public_cards';
 
-// Simplified approach - disable schema validation for now to get AxioDB working
-// We can re-enable with proper schema format later
+// Collections are configured as schemaless and unencrypted as per requirements
 const useSchema = false;
 
 interface SessionRecord {
@@ -50,31 +49,31 @@ class AxioDBUserRepository {
     }
 
     try {
-      // Create or get the database
+      // Create or get the database without schema validation (schemaless)
       this.database = await getDB().createDB(DB_NAME);
 
-      // Create users collection with encryption (schema disabled for now)
+      // Create users collection - schemaless and unencrypted
       this.usersCollection = await this.database.createCollection(
         USERS_COLLECTION,
-        false // Disable schema validation for now
+        false
       );
 
-      // Create sessions collection with encryption (schema disabled for now)
+      // Create sessions collection - schemaless and unencrypted
       this.sessionsCollection = await this.database.createCollection(
         SESSIONS_COLLECTION,
-        false // Disable schema validation for now
+        false
       );
 
-      // Create travel cards collection
+      // Create travel cards collection - schemaless and unencrypted
       this.travelCardsCollection = await this.database.createCollection(
         TRAVEL_CARDS_COLLECTION,
-        false // Disable schema validation for now
+        false
       );
 
-      // Create public cards collection
+      // Create public cards collection - schemaless and unencrypted
       this.publicCardsCollection = await this.database.createCollection(
         PUBLIC_CARDS_COLLECTION,
-        false // Disable schema validation for now
+        false
       );
 
       this.initialized = true;
@@ -262,10 +261,9 @@ class AxioDBUserRepository {
         updatedAt: new Date().toISOString()
       };
 
-      await this.usersCollection.update(
-        { id: userId },
-        { $set: updatedUser }
-      );
+      await this.usersCollection
+        .update({ id: userId })
+        .UpdateOne(updatedUser);
 
       return updatedUser;
     } catch (error) {
@@ -279,10 +277,10 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
 
     try {
-      await this.usersCollection.delete({ id: userId });
+      await this.usersCollection.delete({ id: userId }).deleteOne();
       
       // Also delete all sessions for this user
-      await this.sessionsCollection.delete({ userId });
+      await this.sessionsCollection.delete({ userId }).deleteMany();
     } catch (error) {
       console.error('Error deleting user:', error);
       throw error;
@@ -330,7 +328,7 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
 
     try {
-      await this.sessionsCollection.delete({ sessionId });
+      await this.sessionsCollection.delete({ sessionId }).deleteOne();
     } catch (error) {
       console.error('Error deleting session:', error);
       throw error;
@@ -350,7 +348,7 @@ class AxioDBUserRepository {
 
       for (const session of expiredSessions) {
         if (new Date(session.expiresAt) < new Date(now)) {
-          await this.sessionsCollection.delete({ sessionId: session.sessionId });
+          await this.sessionsCollection.delete({ sessionId: session.sessionId }).deleteOne();
         }
       }
     } catch (error) {
@@ -406,8 +404,11 @@ class AxioDBUserRepository {
         .query({})
         .exec();
 
+      // Ensure allCards is an array
+      const cardsArray = Array.isArray(allCards) ? allCards : [];
+
       // Sort cards
-      let sortedCards = [...allCards];
+      let sortedCards = [...cardsArray];
       switch (sortBy) {
         case 'popular':
           sortedCards.sort((a, b) => (b.metadata.likes + b.metadata.views) - (a.metadata.likes + a.metadata.views));
@@ -483,10 +484,9 @@ class AxioDBUserRepository {
           }
         };
 
-        await this.publicCardsCollection.update(
-          { id: cardId },
-          { $set: updatedCard }
-        );
+        await this.publicCardsCollection
+          .update({ id: cardId })
+          .UpdateOne(updatedCard);
       }
     } catch (error) {
       console.error('Error incrementing card views:', error);
@@ -516,10 +516,9 @@ class AxioDBUserRepository {
           }
         };
 
-        await this.publicCardsCollection.update(
-          { id: cardId },
-          { $set: updatedCard }
-        );
+        await this.publicCardsCollection
+          .update({ id: cardId })
+          .UpdateOne(updatedCard);
 
         return { liked: true, totalLikes: newLikes };
       }
