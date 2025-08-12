@@ -289,6 +289,7 @@ CRITICAL REQUIREMENTS:
 6. Provide specific, actionable advice with exact timings, costs, and locations in readable format
 7. Return ONLY valid JSON with human-readable content, not structured data lists
 8. Never mention API limitations or data quality in the output
+9. FOR FAMILY TRAVEL: Consider children's ages for activity recommendations, family rooms in hotels, child-friendly restaurants, safety considerations, and age-appropriate attractions
 
 WRITING STYLE: Write as if you're personally recommending to a friend - warm, informative, and conversational.
 
@@ -339,6 +340,10 @@ TRAVEL REQUEST:
 - Dietary: ${input.dietary}
 - Season: ${input.season}
 - Motivation: ${input.motivation}
+${input.travelType === 'family' && input.travelerDetails.familyMembers ? 
+`- Family: ${input.travelerDetails.familyMembers.adults} adult(s), ${input.travelerDetails.familyMembers.children} child(ren)${input.travelerDetails.familyMembers.childrenAges?.length ? ` (ages: ${input.travelerDetails.familyMembers.childrenAges.join(', ')})` : ''}${input.travelerDetails.familyMembers.seniors ? `, ${input.travelerDetails.familyMembers.seniors} senior(s)` : ''}` : ''}${input.travelType === 'single' && input.travelerDetails.travelerAge ? 
+`- Traveler Age: ${input.travelerDetails.travelerAge} years` : ''}${input.travelType === 'group' && input.travelerDetails.groupSize ? 
+`- Group Size: ${input.travelerDetails.groupSize} people` : ''}
 
 AVAILABLE API DATA:
 ${apiDataStr}${pricingAnalysis}
@@ -457,12 +462,17 @@ TRAVELER PROFILE:
 - Dietary Requirements: ${input.dietary}
 - Travel Season: ${input.season}
 - Travel Motivation: ${input.motivation}
+${input.travelType === 'family' && input.travelerDetails.familyMembers ? 
+`- Family Composition: ${input.travelerDetails.familyMembers.adults} adult(s), ${input.travelerDetails.familyMembers.children} child(ren)${input.travelerDetails.familyMembers.childrenAges?.length ? ` (ages: ${input.travelerDetails.familyMembers.childrenAges.join(', ')})` : ''}${input.travelerDetails.familyMembers.seniors ? `, ${input.travelerDetails.familyMembers.seniors} senior(s)` : ''}` : ''}${input.travelType === 'single' && input.travelerDetails.travelerAge ? 
+`- Age: ${input.travelerDetails.travelerAge} years` : ''}${input.travelType === 'group' && input.travelerDetails.groupSize ? 
+`- Group Size: ${input.travelerDetails.groupSize} people` : ''}
 
 Using your travel expertise, create comprehensive ${cardType} content that includes:
 - Specific recommendations with exact costs and locations
 - Practical booking and timing advice
 - Indian traveler considerations (visas, food, culture)
 - Realistic budget estimates
+${input.travelType === 'family' && input.travelerDetails.familyMembers?.children ? '- Family-friendly recommendations considering children\'s ages, safety, and comfort' : ''}
 - Actionable next steps
 
 Generate the JSON content:`;

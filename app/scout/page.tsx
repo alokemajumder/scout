@@ -296,7 +296,41 @@ const Scout: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {/* Authentication Section */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-web3-violet-500 to-web3-purple-500 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Hello, <span className="text-web3-violet-600 dark:text-web3-violet-400">@{user.username}</span>
+                  </span>
+                </div>
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  size="sm"
+                  className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setShowAuthModal(true)}
+                variant="outline"
+                size="sm"
+                className="border-web3-violet-300 dark:border-web3-violet-700 text-web3-violet-700 dark:text-web3-violet-400 hover:bg-web3-violet-50 dark:hover:bg-web3-violet-900/20 flex items-center space-x-2"
+              >
+                <User className="w-4 h-4" />
+                <span>Sign Up</span>
+              </Button>
+            )}
+            
             <SafeThemeToggle />
+            
             <Button
               onClick={() => setView(isMobile ? 'mobile-image' : 'create')}
               className="bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 hover:from-web3-violet-500 hover:to-web3-purple-500 text-white px-6 py-2 rounded-xl shadow-web3 hover:shadow-neon transition-all duration-300 flex items-center space-x-2 border border-white/20"

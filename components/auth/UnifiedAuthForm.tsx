@@ -63,14 +63,13 @@ const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({ onSuccess }) => {
     return () => clearTimeout(timeoutId);
   }, [formData.username, mode]);
 
-  // Generate initial username suggestion from name
+  // Generate initial username suggestion from name (alphanumeric only)
   useEffect(() => {
     if (mode === 'signup' && formData.name && !formData.username) {
       const suggestion = formData.name
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '');
+        .replace(/[^a-z0-9]/g, '')
+        .slice(0, 15); // Limit to 15 chars to leave room for numbers if needed
       setFormData(prev => ({ ...prev, username: suggestion }));
     }
   }, [formData.name, formData.username, mode]);
@@ -185,7 +184,10 @@ const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({ onSuccess }) => {
                   placeholder="Choose a unique username"
                   className="pl-8 pr-10 border-web3-violet-300 dark:border-web3-violet-700 rounded-xl focus:ring-web3-violet-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   value={formData.username}
-                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value.toLowerCase() }))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                    setFormData(prev => ({ ...prev, username: value }));
+                  }}
                   disabled={isLoading}
                   required
                 />
@@ -211,7 +213,7 @@ const UnifiedAuthForm: React.FC<UnifiedAuthFormProps> = ({ onSuccess }) => {
               </div>
               
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                3-20 characters, letters, numbers, and underscores only
+                3-20 characters, letters and numbers only (alphanumeric)
               </div>
 
               {/* Username Status */}

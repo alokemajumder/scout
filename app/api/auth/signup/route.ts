@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Username validation
+    // Username validation - alphanumeric only
     if (username.length < 3 || username.length > 20) {
       return NextResponse.json(
         { success: false, error: 'Username must be between 3 and 20 characters' },
@@ -50,18 +50,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!/^[a-z0-9_]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9]+$/.test(username)) {
       return NextResponse.json(
-        { success: false, error: 'Username can only contain lowercase letters, numbers, and underscores' },
+        { success: false, error: 'Username can only contain letters and numbers (alphanumeric)' },
         { status: 400 }
       );
     }
 
-    // Check username availability
-    const usernameCheck = await userRepository.checkUsernameAvailability(username);
-    if (!usernameCheck.available) {
+    // Check username availability using the repository
+    const existingUser = await userRepository.findByUsername(username);
+    
+    if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'Username is not available', suggestions: usernameCheck.suggestions },
+        { success: false, error: 'Username is not available' },
         { status: 409 }
       );
     }
