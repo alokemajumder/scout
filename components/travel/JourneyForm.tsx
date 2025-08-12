@@ -206,11 +206,8 @@ export default function JourneyForm({ onComplete, isGuest = true, initialData }:
         return;
       }
 
-      // Submit to parent component with captcha payload
-      await onComplete({
-        ...travelInput,
-        altcha: captchaPayload // Include captcha payload for verification
-      } as any);
+      // Submit to parent component
+      await onComplete(travelInput);
       
     } catch (error) {
       console.error('Form submission error:', error);

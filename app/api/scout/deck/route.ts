@@ -3,38 +3,36 @@ import { validateCompleteTravelInput } from '@/lib/validations/travel';
 import { rapidAPIClient } from '@/lib/api/rapidapi';
 import { travelDeckGenerator } from '@/lib/api/travel-deck-generator';
 import { TravelCaptureInput } from '@/lib/types/travel';
-import { verifyAltchaSolution } from '@/lib/captcha/altcha';
+import { requireSignedRequest } from '@/lib/security/request-signing';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { altcha, ...travelData } = body;
-    
-    // Verify ALTCHA captcha for non-development environments
-    if (process.env.NODE_ENV === 'production' && !altcha) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Captcha verification required',
-        },
-        { status: 400 }
-      );
-    }
+    let travelData: any;
 
-    if (altcha && process.env.NODE_ENV === 'production') {
-      const isCaptchaValid = await verifyAltchaSolution(altcha);
-      if (!isCaptchaValid) {
+    // Verify request signature for production (enhanced security)
+    if (process.env.NODE_ENV === 'production') {
+      const signatureValidator = requireSignedRequest();
+      const signatureResult = await signatureValidator(request.clone());
+      
+      if (!signatureResult.success) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Invalid captcha solution',
+            error: 'Request signature verification failed',
+            details: signatureResult.error
           },
-          { status: 400 }
+          { status: 401 }
         );
       }
+      
+      // Use the validated payload
+      travelData = signatureResult.payload;
+    } else {
+      // Development mode - use regular body parsing
+      travelData = await request.json();
     }
     
     // Validate the travel input

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '@/lib/db/axiodb-user-repository';
 import { LoginCredentials, User } from '@/lib/types/user';
 import { authRateLimiter, createRateLimitResponse } from '@/lib/auth/rate-limiter';
+import { enhancedSessionManager } from '@/lib/auth/enhanced-session';
 
 export async function POST(request: NextRequest) {
   // Check rate limit first
@@ -47,9 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session with 24-hour expiry for security
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    const sessionId = await userRepository.createSession(user.id, expiresAt);
+    // Create enhanced session with device fingerprinting
+    const sessionId = await enhancedSessionManager.createSession(user.id, request, false);
 
     // Record successful attempt (this will reset the counter)
     authRateLimiter.recordAttempt(request, true);
@@ -63,12 +63,14 @@ export async function POST(request: NextRequest) {
       message: 'Logged in successfully'
     });
 
-    // Set session cookie
+    // Set session cookie with enhanced security
     response.cookies.set('session', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      expires: expiresAt
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      path: '/',
+      ...(process.env.NODE_ENV === 'production' && { domain: process.env.COOKIE_DOMAIN })
     });
 
     return response;
