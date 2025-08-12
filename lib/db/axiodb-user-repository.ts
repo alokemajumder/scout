@@ -123,15 +123,6 @@ class AxioDBUserRepository {
         .Limit(1)
         .exec();
       
-      console.log('Query result:', {
-        resultCount: Array.isArray(result) ? result.length : 0,
-        foundUser: result && result.length > 0 ? {
-          id: result[0]?.id,
-          email: result[0]?.email,
-          hasPasswordHash: !!result[0]?.passwordHash
-        } : null
-      });
-      
       return result && result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Error finding user by email:', error);
