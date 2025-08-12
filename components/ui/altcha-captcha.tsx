@@ -42,18 +42,35 @@ export default function AltchaCaptcha({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // Check if script is already loaded
+    const existingScript = document.querySelector('script[src*="altcha"]');
+    if (existingScript) {
+      setIsLoaded(true);
+      return;
+    }
+
     // Load ALTCHA web component script
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/altcha-lib@latest/dist/altcha.min.js';
     script.type = 'module';
     script.onload = () => setIsLoaded(true);
+    script.onerror = () => {
+      console.error('Failed to load ALTCHA script');
+      onError?.(new Error('Failed to load captcha'));
+    };
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup script if component unmounts
-      document.head.removeChild(script);
+      // Only remove if script exists and no other components are using it
+      if (script.parentNode) {
+        try {
+          document.head.removeChild(script);
+        } catch (e) {
+          // Script already removed, ignore error
+        }
+      }
     };
-  }, []);
+  }, [onError]);
 
   useEffect(() => {
     if (!isLoaded || !widgetRef.current) return;
@@ -84,10 +101,15 @@ export default function AltchaCaptcha({
 
   if (!isLoaded) {
     return (
-      <div className={`flex items-center justify-center p-4 border border-gray-200 rounded-lg ${className}`}>
-        <div className="flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-          <span className="text-sm text-gray-600">Loading captcha...</span>
+      <div className={`flex items-center justify-center p-6 glass dark:glass-dark border border-web3-violet-200 dark:border-web3-violet-800/30 rounded-xl ${className}`}>
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-web3-violet-600 border-t-transparent"></div>
+            <div className="absolute inset-0 rounded-full bg-web3-violet-500/20 animate-pulse"></div>
+          </div>
+          <span className="text-sm font-medium bg-gradient-to-r from-web3-violet-600 to-web3-purple-600 dark:from-web3-violet-400 dark:to-web3-purple-400 bg-clip-text text-transparent">
+            Loading security verification...
+          </span>
         </div>
       </div>
     );
