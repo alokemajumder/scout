@@ -64,6 +64,10 @@ export class OpenRouterClient {
     };
 
     try {
+      // Create timeout controller
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -77,7 +81,10 @@ export class OpenRouterClient {
           temperature: requestConfig.temperature,
           max_tokens: requestConfig.maxTokens,
         }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`OpenRouter API error: ${response.status}`);

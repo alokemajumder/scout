@@ -9,12 +9,16 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Starting travel deck generation...');
+    
     // Simply parse the request body without HMAC verification
     const travelData = await request.json();
+    console.log('📝 Request data received:', { destination: travelData.destination });
     
     // Validate the travel input
     const validation = validateCompleteTravelInput(travelData);
     if (!validation.success) {
+      console.error('❌ Validation failed:', validation.error?.issues);
       return NextResponse.json(
         { 
           success: false, 
@@ -26,16 +30,51 @@ export async function POST(request: NextRequest) {
     }
 
     const travelInput: TravelCaptureInput = validation.data;
+    console.log('✅ Input validated successfully');
     
-    // Creating comprehensive travel deck (removed sensitive data from logs)
+    // Add timeout wrapper for the entire generation process
+    const GENERATION_TIMEOUT = 60000; // 60 seconds total timeout
+    
+    const generationPromise = Promise.race([
+      // Main generation process
+      (async () => {
+        try {
+          console.log('📡 Fetching travel data from RapidAPI...');
+          // Set shorter timeout for API data fetch
+          const apiDataPromise = Promise.race([
+            rapidAPIClient.getTravelData(travelInput),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('RapidAPI timeout')), 15000)
+            )
+          ]);
+          
+          let apiData;
+          try {
+            apiData = await apiDataPromise;
+            console.log('✅ RapidAPI data fetched successfully');
+          } catch (apiError) {
+            console.warn('⚠️ RapidAPI failed, using fallback data:', apiError);
+            apiData = {}; // Use empty data as fallback
+          }
+          
+          console.log('🤖 Generating travel deck with AI...');
+          const deck = await travelDeckGenerator.generateCompleteDeck(travelInput, apiData);
+          console.log('✅ Travel deck generated successfully');
+          
+          return deck;
+        } catch (error) {
+          console.error('❌ Generation process error:', error);
+          throw error;
+        }
+      })(),
+      
+      // Timeout promise
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Generation timeout - process took too long')), GENERATION_TIMEOUT)
+      )
+    ]);
 
-    // Fetch travel data from RapidAPI
-    // Fetching travel data from RapidAPI
-    const apiData = await rapidAPIClient.getTravelData(travelInput);
-    
-    // Generate comprehensive travel deck
-    // Generating travel deck with AI
-    const deck = await travelDeckGenerator.generateCompleteDeck(travelInput, apiData);
+    const deck = await generationPromise;
     
     // Return the deck
     return NextResponse.json({
@@ -52,11 +91,23 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Travel deck creation error:', error);
+    
+    // Return more specific error messages
+    let errorMessage = 'Failed to create travel deck';
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Request timeout - please try again with a simpler destination';
+      } else if (error.message.includes('RapidAPI')) {
+        errorMessage = 'Travel data service temporarily unavailable - trying with limited data';
+      }
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to create travel deck',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     );

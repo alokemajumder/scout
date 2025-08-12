@@ -96,7 +96,7 @@ const Scout: React.FC = () => {
     setIsCreating(true);
     
     try {
-      console.log('Creating travel deck with:', travelInput);
+      console.log('🚀 Creating travel deck with:', { destination: travelInput.destination, origin: travelInput.origin });
       
       // Include authentication status in travel input
       const enhancedTravelInput = {
@@ -105,6 +105,13 @@ const Scout: React.FC = () => {
         userId: isAuthenticated ? user?.id : undefined
       };
       
+      // Create timeout controller for the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('❌ Request timeout after 2 minutes');
+      }, 120000); // 2 minute client timeout (longer than server timeout)
+      
       // Call the deck generation API instead of the basic travel API
       const response = await fetch('/api/scout/deck', {
         method: 'POST',
@@ -112,15 +119,20 @@ const Scout: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(enhancedTravelInput),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Failed to create travel deck (${response.status})`);
+        const errorMessage = errorData?.error || `Failed to create travel deck (${response.status})`;
+        console.error('❌ API Error:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('Deck creation result:', result);
+      console.log('✅ Deck creation result:', { success: result.success, cardCount: result.deck?.cards?.length });
       
       if (result.success && result.deck) {
         // Store the card with deck data locally for guest users
@@ -149,8 +161,23 @@ const Scout: React.FC = () => {
         throw new Error(result.error || 'Failed to create travel deck');
       }
     } catch (error) {
-      console.error('Error creating travel deck:', error);
-      alert(`Failed to create travel deck: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Error creating travel deck:', error);
+      
+      let userMessage = 'Failed to create travel deck';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          userMessage = 'Request took too long - please try again with a simpler destination or check your internet connection';
+        } else if (error.message.includes('timeout')) {
+          userMessage = 'Request timeout - the server is taking too long. Please try again in a moment';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          userMessage = 'Network error - please check your internet connection and try again';
+        } else {
+          userMessage = error.message;
+        }
+      }
+      
+      alert(userMessage);
     } finally {
       setIsCreating(false);
     }
