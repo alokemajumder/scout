@@ -104,7 +104,8 @@ class AxioDBUserRepository {
         .Limit(1)
         .exec();
       
-      return result.length > 0 ? result[0] : null;
+      const documents = result?.data?.documents || [];
+      return documents.length > 0 ? documents[0] : null;
     } catch (error) {
       console.error('Error finding user by ID:', error);
       return null;
@@ -123,7 +124,9 @@ class AxioDBUserRepository {
         .Limit(1)
         .exec();
       
-      return result && result.length > 0 ? result[0] : null;
+      const documents = result?.data?.documents || [];
+      console.log('AxioDB query result:', { result, documentsFound: documents.length });
+      return documents.length > 0 ? documents[0] : null;
     } catch (error) {
       console.error('Error finding user by email:', error);
       return null;
@@ -139,7 +142,8 @@ class AxioDBUserRepository {
         .Limit(1)
         .exec();
       
-      return result.length > 0 ? result[0] : null;
+      const documents = result?.data?.documents || [];
+      return documents.length > 0 ? documents[0] : null;
     } catch (error) {
       console.error('Error finding user by username:', error);
       return null;
@@ -328,7 +332,8 @@ class AxioDBUserRepository {
         .Limit(1)
         .exec();
       
-      return result.length > 0 ? result[0] : null;
+      const documents = result?.data?.documents || [];
+      return documents.length > 0 ? documents[0] : null;
     } catch (error) {
       console.error('Error finding session:', error);
       return null;
@@ -353,9 +358,11 @@ class AxioDBUserRepository {
       const now = new Date().toISOString();
       
       // Delete sessions where expiresAt < now
-      const expiredSessions = await this.sessionsCollection
+      const result = await this.sessionsCollection
         .query({})
         .exec();
+      
+      const expiredSessions = result?.data?.documents || [];
 
       for (const session of expiredSessions) {
         if (new Date(session.expiresAt) < new Date(now)) {
@@ -411,9 +418,11 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
 
     try {
-      const allCards = await this.publicCardsCollection
+      const result = await this.publicCardsCollection
         .query({})
         .exec();
+      
+      const allCards = result?.data?.documents || [];
 
       // Ensure allCards is an array
       const cardsArray = Array.isArray(allCards) ? allCards : [];
@@ -481,10 +490,12 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
 
     try {
-      const card = await this.publicCardsCollection
+      const result = await this.publicCardsCollection
         .query({ id: cardId })
         .Limit(1)
         .exec();
+      
+      const card = result?.data?.documents || [];
       
       if (card.length > 0) {
         const updatedCard = {
@@ -510,10 +521,12 @@ class AxioDBUserRepository {
     try {
       // This is a simplified implementation
       // In a real app, you'd track which users liked which cards
-      const card = await this.publicCardsCollection
+      const result = await this.publicCardsCollection
         .query({ id: cardId })
         .Limit(1)
         .exec();
+      
+      const card = result?.data?.documents || [];
       
       if (card.length > 0) {
         const currentLikes = card[0].metadata.likes;
@@ -546,13 +559,16 @@ class AxioDBUserRepository {
     await this.ensureInitialized();
 
     try {
-      const users = await this.usersCollection
+      const usersResult = await this.usersCollection
         .query({})
         .exec();
 
-      const sessions = await this.sessionsCollection
+      const sessionsResult = await this.sessionsCollection
         .query({})
         .exec();
+      
+      const users = usersResult?.data?.documents || [];
+      const sessions = sessionsResult?.data?.documents || [];
 
       const now = new Date();
       const activeSessions = Array.isArray(sessions) 
