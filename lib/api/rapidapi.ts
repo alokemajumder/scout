@@ -1,5 +1,12 @@
 import { TravelCaptureInput } from '@/lib/types/travel';
 import { rateLimiter, extractApiHost } from './rate-limiter';
+import { 
+  RAPIDAPI_ENDPOINTS, 
+  getRapidApiHeaders, 
+  buildApiUrl, 
+  getApiConfig,
+  validateApiConfig 
+} from '@/lib/config/rapidapi-endpoints';
 
 // RapidAPI configuration
 const RAPIDAPI_BASE_URL = 'https://rapidapi.com';

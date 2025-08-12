@@ -1,5 +1,6 @@
 // Travel Deck Type Definitions
 import { TravelDeckType } from '@/lib/api/openrouter-config';
+import { UnsplashImage } from '@/lib/api/unsplash';
 
 // Base content metadata
 export interface ContentMetadata {
@@ -26,6 +27,11 @@ export interface TravelCard {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  images?: {
+    hero?: UnsplashImage;
+    gallery?: UnsplashImage[];
+    background?: UnsplashImage;
+  };
 }
 
 // Trip Summary Card

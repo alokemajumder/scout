@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { PublicTravelCard } from '@/lib/types/travel';
 import { useAuth } from '@/hooks/useAuth';
+import { useDestinationImages } from '@/hooks/useDestinationImages';
+import Image from 'next/image';
 
 interface PublicCardsGridProps {
   onCardClick?: (card: PublicTravelCard) => void;
@@ -51,6 +53,7 @@ const SORT_OPTIONS = [
 
 export function PublicCardsGrid({ onCardClick, className }: PublicCardsGridProps) {
   const { user } = useAuth();
+  const { images, fetchImage } = useDestinationImages();
   const [cards, setCards] = useState<PublicTravelCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
@@ -85,6 +88,15 @@ export function PublicCardsGrid({ onCardClick, className }: PublicCardsGridProps
   useEffect(() => {
     fetchCards(true);
   }, [sortBy, fetchCards]);
+
+  // Effect to fetch destination images when cards change
+  useEffect(() => {
+    cards.forEach(card => {
+      if (card.destination && !images[card.destination]) {
+        fetchImage(card.destination);
+      }
+    });
+  }, [cards, images, fetchImage]);
 
   const handleCardLike = async (cardId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -238,32 +250,63 @@ export function PublicCardsGrid({ onCardClick, className }: PublicCardsGridProps
                   )}
                   onClick={() => handleCardView(card)}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-web3-violet-500/5 via-transparent to-web3-purple-500/5 dark:from-web3-violet-500/10 dark:to-web3-purple-500/10" />
-                  
-                  <div className="relative p-6 space-y-4">
-                    {/* Header */}
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-web3-violet-600 dark:group-hover:text-web3-violet-400 transition-colors">
-                            {card.title}
-                          </h3>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <MapPin className="w-3 h-3 text-gray-500" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {card.origin} → {card.destination}
-                            </span>
-                          </div>
+                  {/* Destination Image */}
+                  {images[card.destination] && (
+                    <div className="relative h-48 overflow-hidden">
+                      <Image
+                        src={images[card.destination]!.urls.regular}
+                        alt={images[card.destination]!.alt_description || `${card.destination} travel`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="text-lg font-bold text-white shadow-lg">
+                          {card.title}
+                        </h3>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <MapPin className="w-3 h-3 text-white/80" />
+                          <span className="text-sm text-white/80">
+                            {card.origin} → {card.destination}
+                          </span>
                         </div>
-                        
-                        {card.featured && (
-                          <Badge className="bg-web3-neon-purple text-white border-0 shadow-neon">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Featured
-                          </Badge>
-                        )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Background Pattern for cards without images */}
+                  {!images[card.destination] && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-web3-violet-500/5 via-transparent to-web3-purple-500/5 dark:from-web3-violet-500/10 dark:to-web3-purple-500/10" />
+                  )}
+                  
+                  <div className={cn(
+                    "relative space-y-4",
+                    images[card.destination] ? "p-4" : "p-6"
+                  )}>
+                    {/* Header - only show if no image */}
+                    {!images[card.destination] && (
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-web3-violet-600 dark:group-hover:text-web3-violet-400 transition-colors">
+                              {card.title}
+                            </h3>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <MapPin className="w-3 h-3 text-gray-500" />
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {card.origin} → {card.destination}
+                              </span>
+                            </div>
+                          </div>
+                        
+                          {card.featured && (
+                            <Badge className="bg-web3-neon-purple text-white border-0 shadow-neon">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Featured
+                            </Badge>
+                          )}
+                        </div>
 
                       {/* Description */}
                       {card.description && (
@@ -290,7 +333,49 @@ export function PublicCardsGrid({ onCardClick, className }: PublicCardsGridProps
                           )}
                         </div>
                       )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Content for cards with images */}
+                    {images[card.destination] && (
+                      <div className="space-y-3">
+                        {/* Featured badge for image cards */}
+                        {card.featured && (
+                          <div className="flex justify-end">
+                            <Badge className="bg-web3-neon-purple text-white border-0 shadow-neon">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Featured
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Description */}
+                        {card.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {card.description}
+                          </p>
+                        )}
+
+                        {/* Tags */}
+                        {card.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {card.tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-1 text-xs bg-web3-violet-100 dark:bg-web3-violet-900/30 text-web3-violet-700 dark:text-web3-violet-400 rounded-lg"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {card.tags.length > 3 && (
+                              <span className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                                +{card.tags.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Stats and Creator */}
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
